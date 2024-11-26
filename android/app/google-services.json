@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "536032107614",
+    "project_id": "k3rent-eaed5",
+    "storage_bucket": "k3rent-eaed5.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:536032107614:android:9bb08a490c69ca3943e8cf",
+        "android_client_info": {
+          "package_name": "com.example.kerent"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCCPn2S5hzIjcIuzf-4qEAapo5p4DHt-So"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

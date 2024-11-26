@@ -1,0 +1,58 @@
+name: kerent
+version: 1.0.0+1
+publish_to: none
+description: A new Flutter project.
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  cloud_firestore: ^5.4.4
+  cupertino_icons: ^1.0.8
+  firebase_auth: ^5.2.0
+  firebase_core: ^3.3.0
+  firebase_database: ^11.1.4
+  firebase_storage: ^12.3.6
+  flutter:
+    sdk: flutter
+  flutter_image_slideshow: ^0.1.6
+  get: 4.6.6
+  google_sign_in: ^6.2.1
+  http: ^1.2.2
+  image_picker: ^1.1.2
+  intl: ^0.19.0
+  mailer: ^6.2.0
+  mocktail: ^1.0.4
+  shared_preferences: ^2.3.2
+  supabase: ^2.5.0
+  supabase_flutter: ^2.8.0
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/plus_icon.png
+    - assets/images/google.png
+    - assets/images/phone.png
+    - assets/images/devicon_google.png
+    - assets/images/icon_light_smartphone.png
+    - assets/images/search-icon.png
+    - assets/images/Laptop Silver.png
+    - assets/images/Laptop kecil.png
+    - assets/images/mouse.png
+    - assets/images/plus_icon.png
+    - assets/images/search-icon.png
+    - assets/images/icon_star.png
+    - assets/images/home_icon.png
+    - assets/images/keyboard.png
+    - assets/images/Iphone 16 PM.png
+    - assets/images/Laptop kecil banner.png
+    - assets/images/keyboard banner.png
+    - assets/images/Iphone 16 PM banner.png
+    - assets/images/keyboard banner.png
+    - assets/images/google-icon2.png
+    - assets/images/google.png
+    - assets/images/phone.png
