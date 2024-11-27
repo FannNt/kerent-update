@@ -5,11 +5,13 @@ import 'package:kerent/app/controllers/auth_controller.dart';
 import 'package:kerent/app/data/models/product.dart';
 import 'package:kerent/app/modules/CheckOut/views/check_out_view.dart';
 import 'package:kerent/app/modules/mainMenu/controllers/main_menu_controller.dart';
-import 'package:kerent/app/modules/profile/controllers/profile_controller.dart';
+
 import 'package:kerent/app/modules/profile/views/profile_view.dart';
 
 import '../../../../navbar.dart';
 import '../../inbox/views/inbox_view.dart';
+import '../../searchResult/views/search_result_view.dart';
+import '../../searchResult/controllers/search_result_controller.dart';
 
 class MainMenuView extends GetView<MainMenuController> {
   const MainMenuView({super.key});
@@ -134,7 +136,6 @@ class MainMenuView extends GetView<MainMenuController> {
 
   Widget _buildSearchBar() {
     final TextEditingController searchController = TextEditingController();
-
     return Obx(() => Column(
       children: [
         // Search Input
@@ -160,24 +161,13 @@ class MainMenuView extends GetView<MainMenuController> {
                   width: 250,
                   child: TextFormField(
                     controller: searchController,
-                    onChanged: controller.updateSearchQuery,
-                      onFieldSubmitted: (value) {
-                        if (value.trim().isNotEmpty) {
-                          // Clear focus before navigation
-                          FocusScope.of(Get.context!).unfocus();
-                          
-                          // Navigate to search results page
-                          Get.to(
-                            () => const ProfileView(),
-                            transition: Transition.rightToLeft,
-                            duration: const Duration(milliseconds: 300),
-                          );
-                          
-                          // Update the search query in the controller
-                          controller.updateSearchQuery(value);
-                          controller.isSearching.value = true;
-                        }
-                      },
+                    onTap: () => Get.to(
+                          () => const SearchResultView(),
+                          arguments: {'searchQuery': ''},
+                          binding: BindingsBuilder(() {
+                            Get.put(SearchResultController());
+                          }),
+                        ), 
                     style: const TextStyle(
                       color: Colors.white,
                     ),

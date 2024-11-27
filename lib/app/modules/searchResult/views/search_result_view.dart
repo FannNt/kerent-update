@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
+
 import 'package:get/get.dart';
 import 'package:kerent/app/data/models/product.dart';
 import 'package:kerent/app/modules/CheckOut/views/check_out_view.dart';
-import 'package:kerent/app/modules/mainMenu/controllers/main_menu_controller.dart';
 
 import '../../../data/recommendation.dart';
+import '../controllers/search_result_controller.dart';
 
-class SearchView extends GetView<MainMenuController> {
-  const SearchView ({super.key});
-
+class SearchResultView extends GetView<SearchResultController> {
+  const SearchResultView({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -82,6 +82,7 @@ Widget _buildSearchHeader(BuildContext context) {
               children: [
                 Expanded(
                   child: TextField(
+                    controller: TextEditingController(text: controller.searchQuery.value),
                     onChanged: controller.updateSearchQuery,
                     style: const TextStyle(
                       color: Colors.white,
@@ -157,31 +158,68 @@ Widget _buildIconButton({
 }
 
 Widget _buildSearchResults() {
-  // Gunakan GetBuilder sebagai gantinya
-  return GetBuilder<MainMenuController>(
-    builder: (controller) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
-          
-          return GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              childAspectRatio: 0.65,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-            ),
-            itemCount: controller.filteredProducts.length,
-            itemBuilder: (context, index) {
-              final item = controller.filteredProducts[index];
-              return _buildProductCard(context, item, constraints);
-            },
-          );
-        },
+  return Obx(() {
+    // If user is typing, show loading indicator
+    if (controller.isTyping.value) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFFFF8225),
+        ),
       );
     }
-  );
+
+    // If actively loading results
+    if (controller.isLoading.value) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFFFF8225),
+        ),
+      );
+    }
+
+    // If no search query
+    if (controller.searchQuery.value.isEmpty) {
+      return const Center(
+        child: Text(
+          'Type something to search',
+          style: TextStyle(color: Colors.white),
+        ),
+      );
+    }
+
+    // If no results found after search
+    if (!controller.isTyping.value && 
+        !controller.isLoading.value && 
+        controller.filteredProducts.isEmpty) {
+      return const Center(
+        child: Text(
+          'No products found',
+          style: TextStyle(color: Colors.white),
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
+        
+        return GridView.builder(
+          padding: const EdgeInsets.all(16),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: 0.65,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: controller.filteredProducts.length,
+          itemBuilder: (context, index) {
+            final item = controller.filteredProducts[index];
+            return _buildProductCard(context, item, constraints);
+          },
+        );
+      },
+    );
+  });
 }
 
 Widget _buildProductCard(BuildContext context, Product product, BoxConstraints constraints) {
@@ -223,7 +261,7 @@ Widget _buildProductCard(BuildContext context, Product product, BoxConstraints c
                     top: Radius.circular(16),
                   ),
                   child: Image.asset(
-                    'product.images',
+                    product.images!,
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -272,7 +310,7 @@ Widget _buildProductCard(BuildContext context, Product product, BoxConstraints c
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "${product.price}",
+                    product.price.toString(),
                     style: TextStyle(
                       color: const Color(0xFFFF8225),
                       fontSize: priceFontSize,
@@ -289,7 +327,7 @@ Widget _buildProductCard(BuildContext context, Product product, BoxConstraints c
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${product.rating}',
+                        product.rating.toString(),
                         style: TextStyle(
                           color: Colors.grey[400],
                           fontSize: ratingFontSize,
@@ -308,7 +346,7 @@ Widget _buildProductCard(BuildContext context, Product product, BoxConstraints c
 }
 
 
-  Widget _buildRecommendations() {
+    Widget _buildRecommendations() {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: controller.recommendations.length,
@@ -410,10 +448,14 @@ Widget _buildProductCard(BuildContext context, Product product, BoxConstraints c
               ),
             ),
             const SizedBox(height: 16),
-            _buildSortOption('Price: Low to High', Icons.arrow_upward),
-            _buildSortOption('Price: High to Low', Icons.arrow_downward),
-            _buildSortOption('Rating', Icons.star),
-            _buildSortOption('Newest', Icons.access_time),
+            Obx(() => Column(
+              children: [
+                _buildSortOption('Price: Low to High', Icons.arrow_upward),
+                _buildSortOption('Price: High to Low', Icons.arrow_downward),
+                _buildSortOption('Rating', Icons.star),
+                _buildSortOption('Newest', Icons.access_time),
+              ],
+            )),
             const SizedBox(height: 8),
           ],
         ),
@@ -423,16 +465,29 @@ Widget _buildProductCard(BuildContext context, Product product, BoxConstraints c
 
   Widget _buildSortOption(String label, IconData icon) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFFFF8225)),
+      leading: Icon(
+        icon, 
+        color: controller.selectedSort.value == label 
+            ? const Color(0xFFFF8225) 
+            : Colors.grey,
+      ),
       title: Text(
         label,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: controller.selectedSort.value == label 
+              ? Colors.white 
+              : Colors.grey,
           fontSize: 15,
         ),
       ),
+      trailing: controller.selectedSort.value == label
+          ? const Icon(
+              Icons.check,
+              color: Color(0xFFFF8225),
+            )
+          : null,
       onTap: () {
-        // Implement sorting logic
+        controller.updateSort(label);
         Get.back();
       },
     );

@@ -27,8 +27,8 @@ import '../modules/profile/bindings/profile_binding.dart';
 import '../modules/profile/views/profile_view.dart';
 import '../modules/register/bindings/register_binding.dart';
 import '../modules/register/views/register_view.dart';
-import '../modules/search/bindings/search_binding.dart';
-import '../modules/search/views/search_view.dart';
+import '../modules/searchResult/bindings/search_result_binding.dart';
+import '../modules/searchResult/views/search_result_view.dart';
 
 part 'app_routes.dart';
 
@@ -115,10 +115,11 @@ class AppPages {
       page: () => const InboxPage(),
       binding: InboxBinding(),
     ),
+
     GetPage(
-      name: _Paths.SEARCH,
-      page: () => const SearchView(),
-      binding: SearchBinding(),
+      name: _Paths.SEARCH_RESULT,
+      page: () => const SearchResultView(),
+      binding: SearchResultBinding(),
     ),
   ];
 }
