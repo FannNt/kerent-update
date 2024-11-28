@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:kerent/app/modules/addProduct/controllers/add_product_controller.dart';
@@ -11,6 +10,7 @@ import 'app/modules/login/controllers/login_controller.dart';
 import 'app/modules/mainMenu/views/main_menu_view.dart';
 import 'app/routes/app_pages.dart';
 import 'app/services/auth_service.dart';
+import 'app/modules/loading/loading.dart';
 import 'config.dart';
 
 void main() async{
@@ -37,26 +37,23 @@ class InitialScreen extends StatelessWidget {
   final LoginController _loginController = Get.put(LoginController());
 
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: _loginController.initializeAuth(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          return Obx(() {
-            if (_loginController.user.value != null) {
-              return MainMenuView();
-            } else {
-              return const HomeView();
-            }
-          });
-        }
-        // Show a loading screen while waiting for initialization
-        return Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(),
-          ),
-        );
-      },
-    );
-  }
+Widget build(BuildContext context) {
+  return FutureBuilder(
+    future: _loginController.initializeAuth(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.done) {
+        return Obx(() {
+          if (_loginController.user.value != null) {
+            return MainMenuView();
+          } else {
+            return const HomeView();
+          }
+        });
+      }
+
+      return const LoadingPage();
+    },
+  );
+}
+
 }
