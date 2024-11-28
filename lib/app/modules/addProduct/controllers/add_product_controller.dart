@@ -133,9 +133,9 @@ class AddProductController extends GetxController {
         price: double.parse(priceController.text),
         images: imageUrl, // Use the uploaded image URL
         rating: 0.01,
-        seller: authController.displayName ?? 'Unknown',
-        sellerId: authController.uid ?? '',
-        kelas: 'jii',
+        seller: authController.displayName.value,
+        sellerId: authController.currentUser?.uid ?? '',
+        kelas: '',
         stock: int.parse(stockController.text),
         kondisi: selectedCondition.value,
         etalase: selectedCategory.value,

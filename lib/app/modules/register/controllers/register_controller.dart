@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../controllers/auth_controller.dart';
+
 class RegisterController extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
@@ -60,14 +62,84 @@ class RegisterController extends GetxController {
   Future<void> register() async {
     if (formKey.currentState!.validate()) {
       try {
+        print('Starting registration process...'); // Debug print
+        print('Username: ${username.value}'); // Debug print
+        print('Email: ${email.value}'); // Debug print
+        print('Phone: ${phoneNumber.value}'); // Debug print
+
+        // Show loading indicator
+        Get.dialog(
+          const Center(
+            child: CircularProgressIndicator(),
+          ),
+          barrierDismissible: false,
+        );
+
+        // Create user in Firebase Auth
         UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
           email: email.value,
           password: password.value,
         );
-        await _saveUserData(userCredential.user!, isNewUser: true);
-        Get.snackbar('Success', 'Registration successful');
+
+        print('User created in Firebase Auth'); // Debug print
+
+        // Prepare user data for Firestore
+        final userData = {
+          'username': username.value,
+          'email': email.value,
+          'phoneNumber': phoneNumber.value,
+          'createdAt': FieldValue.serverTimestamp(),
+          'lastSignInTime': FieldValue.serverTimestamp(),
+          'isEmailVerified': userCredential.user?.emailVerified ?? false,
+          'profileImageUrl': userCredential.user?.photoURL ?? '',
+          'userPreferences': {
+            'theme': '',
+            'notifications': false
+          }
+        };
+
+        print('Saving user data to Firestore...'); // Debug print
+
+        // Save to Firestore
+        await _firestore
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .set(userData);
+
+        print('User data saved to Firestore'); // Debug print
+
+        // Update display name in Firebase Auth
+        await userCredential.user!.updateDisplayName(username.value);
+
+        print('Display name updated in Firebase Auth'); // Debug print
+
+        // Update AuthController
+        final authController = Get.find<AuthController>();
+        authController.updateUserData(
+          displayName: username.value,
+          phoneNumber: phoneNumber.value,
+          email: email.value,
+          image: userCredential.user?.photoURL ?? '',
+        );
+
+        print('AuthController updated'); // Debug print
+
+        // Close loading dialog
+        Get.back();
+
+        // Show success message and navigate
+        Get.snackbar(
+          'Success',
+          'Registration successful',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+        
         Get.offAllNamed("/main-menu");
       } on FirebaseAuthException catch (e) {
+        // Close loading dialog
+        Get.back();
+        
         String errorMessage;
         switch (e.code) {
           case 'weak-password':
@@ -79,10 +151,33 @@ class RegisterController extends GetxController {
           default:
             errorMessage = 'An error occurred during registration: ${e.message}';
         }
-        Get.snackbar('Error', errorMessage);
+        print('Firebase Auth Error: ${e.code} - $errorMessage'); // Debug print
+        Get.snackbar(
+          'Error',
+          errorMessage,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
       } catch (e) {
-        Get.snackbar('Error', 'Registration failed: $e');
+        // Close loading dialog
+        Get.back();
+        
+        print('General Error: $e'); // Debug print
+        Get.snackbar(
+          'Error',
+          'Registration failed: $e',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
       }
+    } else {
+      print('Form validation failed'); // Debug print
+      Get.snackbar(
+        'Error',
+        'Please fill all required fields correctly',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     }
   }
 
@@ -91,7 +186,7 @@ class RegisterController extends GetxController {
       final userData = {
         'username': username.value.isNotEmpty ? username.value : user.displayName ?? 'New User',
         'email': user.email ?? email.value,
-        'phoneNumber': user.phoneNumber ?? phoneNumber.value,
+        'phoneNumber': phoneNumber.value, // Use the phone number from the form
         'lastSignInTime': FieldValue.serverTimestamp(),
         'isEmailVerified': user.emailVerified,
         'profileImageUrl': user.photoURL,
@@ -105,14 +200,27 @@ class RegisterController extends GetxController {
         };
       }
 
-      await _firestore.collection('users').doc(user.uid).set(userData, SetOptions(merge: true));
+      // Save to Firestore
+      await _firestore.collection('users').doc(user.uid).set(
+        userData,
+        SetOptions(merge: true)
+      );
+
+      // Update AuthController with the new user data
+      final authController = Get.find<AuthController>();
+      authController.updateUserData(
+        displayName: username.value,
+        phoneNumber: phoneNumber.value,
+        email: user.email ?? email.value,
+        image: user.photoURL ?? '',
+      );
 
       if (isNewUser && !user.emailVerified) {
         await user.sendEmailVerification();
       }
     } catch (e) {
       print('Error saving user data: $e');
-      // Consider how you want to handle this error. You might want to show a snackbar or log it.
+      Get.snackbar('Error', 'Failed to save user data');
     }
   }
 }

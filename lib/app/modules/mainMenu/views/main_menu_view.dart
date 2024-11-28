@@ -116,7 +116,7 @@ class MainMenuView extends GetView<MainMenuController> {
 
 
                           child: Text(
-                            _auth.displayName??'',
+                            '',
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -429,7 +429,7 @@ Widget _buildCarouselItem(BuildContext context, String title, String subtitle, S
           Positioned(
             right: 0,
             top: 0,
-            child: Image.network(
+            child: Image.asset(
               image
             ),
           ),
