@@ -74,9 +74,9 @@ class HomeView extends GetView<AuthController> {
                         0.8,
                         0.07,
                         const Color(0xFF282828),
-                        'Continue with Phone',
+                        'Continue with Email',
                         const Color(0xFFF8F8F8),
-                        'assets/images/phone.png',
+                        'assets/images/email-logo.png',
                         () {
                           Get.toNamed("/login");
                         },
