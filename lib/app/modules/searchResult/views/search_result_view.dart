@@ -260,9 +260,17 @@ Widget _buildProductCard(BuildContext context, Product product, BoxConstraints c
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(16),
                   ),
-                  child: Image.asset(
-                    product.images!,
+                  child: Image.network(
+                    product.images,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Icon(
+                          Icons.broken_image,
+                          color: Colors.grey,
+                        ),
+                      );
+                    },
                   ),
                 ),
                 // Gradient overlay
@@ -368,7 +376,7 @@ Widget _buildProductCard(BuildContext context, Product product, BoxConstraints c
         contentPadding: const EdgeInsets.all(12),
         leading: ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: Image.asset(
+          child: Image.network(
             recommendation.image,
             width: 60,
             height: 60,

@@ -11,6 +11,7 @@ import 'app/modules/login/controllers/login_controller.dart';
 import 'app/modules/mainMenu/views/main_menu_view.dart';
 import 'app/routes/app_pages.dart';
 import 'app/services/auth_service.dart';
+import 'config.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,8 +21,8 @@ void main() async{
   Get.lazyPut<AuthController>(() => AuthController());
   Get.lazyPut<AddProductController>(() => AddProductController());
     await Supabase.initialize(
-    url: 'https://wvnyaalmcawdnkaylvso.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind2bnlhYWxtY2F3ZG5rYXlsdnNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjgzODY2NjAsImV4cCI6MjA0Mzk2MjY2MH0.BmHwEB3UBa-vshLjOFjpzQpMP_xwl2W81kmz6cWJizE',
+    url: Config.supabaseUrl,
+    anonKey: Config.supabaseAnonKey,
   );
 
   runApp(

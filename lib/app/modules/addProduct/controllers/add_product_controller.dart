@@ -29,13 +29,50 @@ class AddProductController extends GetxController {
 
   Future<void> pickImage() async {
     try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 80,
+      // Show bottom sheet for image source selection
+      await Get.bottomSheet(
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Take a Photo'),
+                onTap: () async {
+                  Get.back();
+                  final XFile? image = await _picker.pickImage(
+                    source: ImageSource.camera,
+                    imageQuality: 80,
+                  );
+                  if (image != null) {
+                    imageFile.value = image;
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choose from Gallery'),
+                onTap: () async {
+                  Get.back();
+                  final XFile? image = await _picker.pickImage(
+                    source: ImageSource.gallery,
+                    imageQuality: 80,
+                  );
+                  if (image != null) {
+                    imageFile.value = image;
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+        backgroundColor: Colors.transparent,
       );
-      if (image != null) {
-        imageFile.value = image;
-      }
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -45,7 +82,7 @@ class AddProductController extends GetxController {
       );
     }
   }
-      Future<String> _uploadImageToSupabase(File imageFile,) async {
+      Future<String> _uploadImageToSupabase(File imageFile) async {
     try {
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final storageResponse = await supabase.storage
@@ -74,14 +111,27 @@ class AddProductController extends GetxController {
       return;
     }
 
+    if (imageFile.value == null) {
+      Get.snackbar(
+        'Error',
+        'Please select an image for the product',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
     try {
       isLoading.value = true;
+
+      // Upload image to Supabase
+      final String imageUrl = await _uploadImageToSupabase(File(imageFile.value!.path));
 
       final product = Product(
         id: '',
         name: nameController.text,
         price: double.parse(priceController.text),
-        images: 'nb',
+        images: imageUrl, // Use the uploaded image URL
         rating: 0.01,
         seller: authController.displayName ?? 'Unknown',
         sellerId: authController.uid ?? '',
@@ -107,6 +157,7 @@ class AddProductController extends GetxController {
         colorText: Colors.white,
       );
     } catch (e) {
+      print(e);
       Get.snackbar(
         'Error',
         'Failed to add product: $e',

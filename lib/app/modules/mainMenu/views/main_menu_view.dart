@@ -246,7 +246,7 @@ class MainMenuView extends GetView<MainMenuController> {
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(8),
                                     image: DecorationImage(
-                                      image: AssetImage(recommendation.image),
+                                      image: NetworkImage(recommendation.image),
                                       fit: BoxFit.cover,
                                     ),
                                   ),
@@ -429,7 +429,7 @@ Widget _buildCarouselItem(BuildContext context, String title, String subtitle, S
           Positioned(
             right: 0,
             top: 0,
-            child: Image.asset(
+            child: Image.network(
               image
             ),
           ),
@@ -714,7 +714,7 @@ Widget _buildForYouCard(BuildContext context, Product product, BoxConstraints co
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(16),
                   ),
-                  child: Image.asset(
+                  child: Image.network(
                     product.images??'',
                     fit: BoxFit.cover,
                   ),
