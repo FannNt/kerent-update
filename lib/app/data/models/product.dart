@@ -1,12 +1,13 @@
 import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
 class Product {
   final String id;
   final String name;
   final double price;
-  final String ?images;
+  final String images;
   final double rating;
   final String seller;
   final String sellerId;
@@ -22,7 +23,7 @@ class Product {
     required this.id,
     required this.name,
     required this.price,
-    this.images,
+    required this.images,
     required this.rating,
     required this.seller,
     required this.sellerId,
@@ -70,11 +71,33 @@ class Product {
     );
   }
 
+  // Add this method to generate search keywords
+  static List<String> generateSearchKeywords(String text) {
+    final List<String> keywords = [];
+    final String lowercaseText = text.toLowerCase();
+    
+    // Add full text
+    keywords.add(lowercaseText);
+    
+    // Add each word
+    keywords.addAll(lowercaseText.split(' '));
+    
+    // Add partial words (for partial matching)
+    String word = '';
+    for (final char in lowercaseText.characters) {
+      word += char;
+      keywords.add(word);
+    }
+    
+    return keywords.toSet().toList(); // Remove duplicates
+  }
 
   // Convert Product object to Firestore document
   Map<String, dynamic> toFirestore() {
     return {
       'name': name,
+      'name_lowercase': name.toLowerCase(), // Add this field for case-insensitive search
+      'searchKeywords': generateSearchKeywords(name), // Add search keywords
       'price': price,
       'images': images,
       'rating': rating,

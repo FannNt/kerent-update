@@ -8,5 +8,6 @@ class MainMenuBinding extends Bindings {
   void dependencies() {
     Get.put<MainMenuController>(MainMenuController(), permanent: true);
     Get.put<AuthController>(AuthController(), permanent: true);
+    
   }
 }

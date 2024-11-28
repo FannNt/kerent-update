@@ -2,10 +2,6 @@ import 'package:get/get.dart';
 
 import '../modules/CheckOut/bindings/check_out_binding.dart';
 import '../modules/CheckOut/views/check_out_view.dart';
-import '../modules/ConfirmNumber/bindings/confirm_number_binding.dart';
-import '../modules/ConfirmNumber/views/confirm_number_view.dart';
-import '../modules/SignInPhone/bindings/sign_in_phone_binding.dart';
-import '../modules/SignInPhone/views/sign_in_phone_view.dart';
 import '../modules/addProduct/bindings/add_product_binding.dart';
 import '../modules/addProduct/views/add_product_view.dart';
 import '../modules/chat/bindings/chat_binding.dart';
@@ -27,8 +23,8 @@ import '../modules/profile/bindings/profile_binding.dart';
 import '../modules/profile/views/profile_view.dart';
 import '../modules/register/bindings/register_binding.dart';
 import '../modules/register/views/register_view.dart';
-import '../modules/search/bindings/search_binding.dart';
-import '../modules/search/views/search_view.dart';
+import '../modules/searchResult/bindings/search_result_binding.dart';
+import '../modules/searchResult/views/search_result_view.dart';
 
 part 'app_routes.dart';
 
@@ -48,16 +44,7 @@ class AppPages {
       page: () => const ProfileView(),
       binding: ProfileBinding(),
     ),
-    GetPage(
-      name: _Paths.CONFIRM_NUMBER,
-      page: () => const ConfirmNumberView(),
-      binding: ConfirmNumberBinding(),
-    ),
-    GetPage(
-      name: _Paths.SIGN_IN_PHONE,
-      page: () => const SignInPhoneView(),
-      binding: SignInPhoneBinding(),
-    ),
+
     GetPage(
       name: _Paths.MAIN_MENU,
       page: () => MainMenuView(),
@@ -95,16 +82,8 @@ class AppPages {
       page: () => AddProductView(),
       binding: AddProductBinding(),
     ),
-    GetPage(
-      name: _Paths.CONFIRM_NUMBER,
-      page: () => const ConfirmNumberView(),
-      binding: ConfirmNumberBinding(),
-    ),
-    GetPage(
-      name: _Paths.SIGN_IN_PHONE,
-      page: () => const SignInPhoneView(),
-      binding: SignInPhoneBinding(),
-    ),
+
+  
     // GetPage(
     //   name: _Paths.PAYMENT,
     //   page: () => const PaymentView(),
@@ -115,10 +94,11 @@ class AppPages {
       page: () => const InboxPage(),
       binding: InboxBinding(),
     ),
+
     GetPage(
-      name: _Paths.SEARCH,
-      page: () => const SearchView(),
-      binding: SearchBinding(),
+      name: _Paths.SEARCH_RESULT,
+      page: () => const SearchResultView(),
+      binding: SearchResultBinding(),
     ),
   ];
 }

@@ -127,15 +127,40 @@ class RegisterView extends GetView<RegisterController> {
   Widget _buildInputFields() {
     return Column(
       children: [
-        _buildInputField('Username', controller.username, (val) => controller.username.value = val),
+        _buildInputField(
+          'Username',
+          controller.username,
+          (val) => controller.username.value = val,
+        ),
         SizedBox(height: 15),
-        _buildInputField('Phone Number', controller.phoneNumber, (val) => controller.phoneNumber.value = val, isPhoneNumber: true),
+        _buildInputField(
+          'Phone Number',
+          controller.phoneNumber,
+          (val) => controller.phoneNumber.value = val,
+          isPhoneNumber: true,
+        ),
         SizedBox(height: 15),
-        _buildInputField('Email', controller.email, (val) => controller.email.value = val, isEmail: true),
+        _buildInputField(
+          'Email',
+          controller.email,
+          (val) => controller.email.value = val,
+          isEmail: true,
+        ),
         SizedBox(height: 15),
-        _buildInputField('Password', controller.password, (val) => controller.password.value = val, isPassword: true),
+        _buildInputField(
+          'Password',
+          controller.password,
+          (val) => controller.password.value = val,
+          isPassword: true,
+        ),
         SizedBox(height: 15),
-        _buildInputField('Confirm Password', controller.confirmPassword, (val) => controller.confirmPassword.value = val, isPassword: true, isConfirmPassword: true),
+        _buildInputField(
+          'Confirm Password',
+          controller.confirmPassword,
+          (val) => controller.confirmPassword.value = val,
+          isPassword: true,
+          isConfirmPassword: true,
+        ),
       ],
     );
   }

@@ -173,7 +173,7 @@ class PaymentView extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: Image.asset(product.images ?? ''),
+                      child: Image.network(product.images),
                     ),
                     const SizedBox(height: 8),
                     Text(

@@ -23,6 +23,7 @@ class AddProductView extends GetView<AddProductController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildImagePicker(),
                 const SizedBox(height: 20),
                 _buildTextField(
                   label: 'Product Name',
