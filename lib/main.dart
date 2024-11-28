@@ -51,7 +51,6 @@ Widget build(BuildContext context) {
         });
       }
 
-      // Ganti CircularProgressIndicator dengan Custom Loading Page
       return const LoadingPage();
     },
   );
