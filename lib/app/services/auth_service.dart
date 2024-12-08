@@ -20,7 +20,7 @@ class AuthService extends GetxService {
   String? get userEmail => currentUser?.email;
 
   String? get userPhotoUrl => currentUser?.photoURL;
-    
+  String? get userUid => currentUser?.uid;
      Future<void> signInWithGoogle() async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -58,6 +58,41 @@ class AuthService extends GetxService {
       print('User signed out successfully');
     } catch (e) {
       print('Error signing out: $e');
+    }
+  }
+
+  Future<void> updatePhoneNumber(String newPhone) async {
+    try {
+      String? uid = currentUser?.uid;
+      if (uid != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .update({'phoneNumber': newPhone});
+      }
+    } catch (e) {
+      print('Error updating phone number: $e');
+      throw e;
+    }
+  }
+
+  Future<void> updatePassword(String oldPassword, String newPassword) async {
+    try {
+      final user = currentUser;
+      if (user != null && user.email != null) {
+        // Reauthenticate user first
+        AuthCredential credential = EmailAuthProvider.credential(
+          email: user.email!,
+          password: oldPassword,
+        );
+        await user.reauthenticateWithCredential(credential);
+        
+        // Then update password
+        await user.updatePassword(newPassword);
+      }
+    } catch (e) {
+      print('Error updating password: $e');
+      throw e;
     }
   }
 }

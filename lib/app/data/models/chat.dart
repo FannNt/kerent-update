@@ -1,94 +1,41 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ChatMessage {
-  final String id;
-  final String content;
-  final String senderId;
-  final String senderName;
-  final DateTime timestamp;
-
-  ChatMessage({
-    required this.id,
-    required this.content,
-    required this.senderId,
-    required this.senderName,
-    required this.timestamp,
-  });
-
-  factory ChatMessage.fromDocument(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return ChatMessage(
-      id: doc.id,
-      content: data['content'],
-      senderId: data['senderId'],
-      senderName: data['senderName'],
-      timestamp: (data['timestamp'] as Timestamp).toDate(),
-    );
-  }
-}
-
-class ChatUser {
-  final String id;
-  final String name;
+class Chat {
+  final List<String> users;
+  final List<String> usernames;
   final String lastMessage;
-  final DateTime lastMessageTimestamp;
+  final DateTime lastMessageTime;
+  final int unreadCount;
+  String? id; // Optional ID for when chat is created
 
-  ChatUser({
-    required this.id,
-    required this.name,
+  Chat({
+    required this.users,
+    required this.usernames,
     required this.lastMessage,
-    required this.lastMessageTimestamp,
+    required this.lastMessageTime,
+    required this.unreadCount,
+    this.id,
   });
 
-  factory ChatUser.fromDocument(DocumentSnapshot doc) {
+  factory Chat.fromDocument(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    return ChatUser(
+    return Chat(
       id: doc.id,
-      name: data['name'],
-      lastMessage: data['lastMessage'],
-      lastMessageTimestamp: (data['lastMessageTimestamp'] as Timestamp).toDate(),
+      users: List<String>.from(data['users'] ?? []),
+      usernames: List<String>.from(data['usernames'] ?? []),
+      lastMessage: data['lastMessage'] ?? '',
+      lastMessageTime: (data['lastMessageTime'] as Timestamp).toDate(),
+      unreadCount: data['unreadCount'] ?? 0,
     );
   }
-}
 
-class PrivateChatMessage {
-  final String id;
-  final String content;
-  final String senderId;
-  final String senderName;
-  final DateTime timestamp;
-
-  PrivateChatMessage({
-    required this.id,
-    required this.content,
-    required this.senderId,
-    required this.senderName,
-    required this.timestamp,
-  });
-
-  factory PrivateChatMessage.fromDocument(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return PrivateChatMessage(
-      id: doc.id,
-      content: data['content'],
-      senderId: data['senderId'],
-      senderName: data['senderName'] ?? 'asd',
-      timestamp: (data['timestamp'] as Timestamp).toDate(),
-    );
-  }
-}
-
-class PrivateChatUser {
-  final String uid;
-  final String name;
-
-  PrivateChatUser({this.uid = '', this.name = ''});
-
-  factory PrivateChatUser.fromDocument(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return PrivateChatUser(
-      uid: doc.id,
-      name: data['username'] ?? 'kjnkj',
-    );
+  Map<String, dynamic> toMap() {
+    return {
+      'users': users,
+      'usernames': usernames,
+      'lastMessage': lastMessage,
+      'lastMessageTime': Timestamp.fromDate(lastMessageTime),
+      'unreadCount': unreadCount,
+    };
   }
 }

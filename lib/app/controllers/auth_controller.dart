@@ -9,7 +9,6 @@ class AuthController extends GetxController {
 
   final formKey = GlobalKey<FormState>();
   final phoneNumberController = TextEditingController();
-  final otpController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   User? get currentUser => _auth.currentUser;
@@ -17,15 +16,18 @@ class AuthController extends GetxController {
 
   RxBool isLoading = false.obs;
   Rx<User?> get user => _authService.user;
+  Rx<String?> get uid => _authService.userUid.obs;
+  
   final Rx<String> displayName = ''.obs;
   final Rx<String> phoneNumber = ''.obs;
   final Rx<String> email = ''.obs;
   final Rx<String> image = ''.obs;
-
+  final Rx<String> classOrPosition = ''.obs;
+  final Rx<String> description = ''.obs;
+  
   @override
   void onClose() {
     phoneNumberController.dispose();
-    otpController.dispose();
     super.onClose();
   }
 

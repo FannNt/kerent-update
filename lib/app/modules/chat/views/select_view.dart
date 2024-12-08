@@ -15,7 +15,7 @@ class _SelectRecipientPageState extends State<SelectRecipientPage> {
   final ChatController controller = Get.find();
   final TextEditingController searchController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  List<PrivateChatUser> filteredUsers = [];
+  List<Chat> filteredUsers = [];
 
   @override
   void initState() {
@@ -25,7 +25,7 @@ class _SelectRecipientPageState extends State<SelectRecipientPage> {
 
   void _fetchAllUsers() {
     _firestore.collection('users').snapshots().listen((snapshot) {
-      filteredUsers = snapshot.docs.map((doc) => PrivateChatUser.fromDocument(doc)).toList();
+      filteredUsers = snapshot.docs.map((doc) => Chat.fromDocument(doc)).toList();
       setState(() {});
     });
   }
@@ -60,9 +60,9 @@ class _SelectRecipientPageState extends State<SelectRecipientPage> {
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundColor: Colors.blue,
-                    child: Text(user.name.isNotEmpty ? user.name[0] : 'U'),
+                    child: Text(user.usernames.isNotEmpty ? user.usernames[0] : 'U'),
                   ),
-                  title: Text(user.name),
+                  title: Text(user.usernames.isNotEmpty ? user.usernames[0] : 'U'),
                   onTap: () {
                     // controller.setRecipient(user);
                     // Get.back();

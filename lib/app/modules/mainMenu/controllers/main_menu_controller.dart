@@ -3,6 +3,10 @@ import 'package:get/get.dart';
 import '../../../data/models/product.dart';
 import '../../../data/recommendation.dart';
 import '../../../services/produk_service.dart';
+import 'package:kerent/app/modules/profile/views/profile_edit.dart';
+import 'package:kerent/app/modules/profile/controllers/profile_controller.dart';
+import 'package:kerent/app/services/auth_service.dart';
+import 'package:kerent/app/modules/profile/views/profile_view.dart';
 class MainMenuController extends GetxController {
 
   final ProductService _productService = ProductService();
@@ -169,6 +173,29 @@ class MainMenuController extends GetxController {
     } catch (e) {
       forYouProducts.clear();
       print(e);
+    }
+  }
+
+  void navigateToProfile() {
+    final ProfileController profileController = Get.put(ProfileController());
+    final AuthService authService = Get.find<AuthService>();
+    final String currentUserId = authService.userUid ?? '';
+    
+    // Initialize profile with current user's ID
+    profileController.initializeProfileForUser(currentUserId);
+    
+    // If it's the current user's profile, show edit view
+    // Otherwise, show public profile view
+    if (profileController.targetUserId == currentUserId) {
+      Get.to(
+        () => const ProfileEditView(),
+        transition: Transition.rightToLeft,
+      );
+    } else {
+      Get.to(
+        () => const PublicProfilePage(), // Create this view for public viewing
+        transition: Transition.rightToLeft,
+      );
     }
   }
 

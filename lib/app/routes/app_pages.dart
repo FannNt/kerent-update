@@ -41,7 +41,7 @@ class AppPages {
     ),
     GetPage(
       name: _Paths.PROFILE,
-      page: () => const ProfileView(),
+      page: () => const PublicProfilePage(),
       binding: ProfileBinding(),
     ),
 

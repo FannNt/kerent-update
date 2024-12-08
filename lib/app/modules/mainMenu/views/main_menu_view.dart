@@ -95,9 +95,7 @@ class MainMenuView extends GetView<MainMenuController> {
               ),
               const SizedBox(width: 16,),
               GestureDetector(
-                onTap: () {
-                  Get.to(() => const ProfileView(), transition: Transition.rightToLeft);
-                },
+                onTap: controller.navigateToProfile,
                 child: Obx(() => Container(
                   width: 40,
                   height: 40,
@@ -113,10 +111,10 @@ class MainMenuView extends GetView<MainMenuController> {
                   ),
                   child: _auth.image.value.isEmpty
                       ? Center(
-
-
                           child: Text(
-                            '',
+                            _auth.displayName.value.isNotEmpty 
+                                ? _auth.displayName.value[0].toUpperCase()
+                                : '',
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -135,194 +133,46 @@ class MainMenuView extends GetView<MainMenuController> {
   }
 
   Widget _buildSearchBar() {
-    final TextEditingController searchController = TextEditingController();
-    return Obx(() => Column(
-      children: [
-        // Search Input
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            margin: const EdgeInsets.only(top: 20),
-            height: 53,
-            decoration: BoxDecoration(
-              color: const Color(0xFF272829),
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.search,
-                  color: Colors.white,
-                  size: 22,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: GestureDetector(
+        onTap: () => Get.to(
+          () => const SearchResultView(),
+          arguments: {'searchQuery': ''},
+          binding: BindingsBuilder(() {
+            Get.put(SearchResultController());
+          }),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 15),
+          margin: const EdgeInsets.only(top: 20),
+          height: 53,
+          decoration: BoxDecoration(
+            color: const Color(0xFF272829),
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.search,
+                color: Colors.white,
+                size: 22,
+              ),
+              const SizedBox(width: 20),
+              const Text(
+                "Search on Ke'rent",
+                style: TextStyle(
+                  color: Color(0xFFF8F8F8),
+                  fontSize: 13,
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontWeight: FontWeight.w600,
                 ),
-                Container(
-                  margin: const EdgeInsets.only(left: 20),
-                  width: 250,
-                  child: TextFormField(
-                    controller: searchController,
-                    onTap: () => Get.to(
-                          () => const SearchResultView(),
-                          arguments: {'searchQuery': ''},
-                          binding: BindingsBuilder(() {
-                            Get.put(SearchResultController());
-                          }),
-                        ), 
-                    style: const TextStyle(
-                      color: Colors.white,
-                    ),
-                    decoration: const InputDecoration(
-                      hintText: "Search on Ke'rent",
-                      border: InputBorder.none,
-                      hintStyle: TextStyle(
-                        color: Color(0xFFF8F8F8),
-                        fontSize: 13,
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-        
-        // Recommendations Panel
-        if (controller.isSearching.value && controller.filteredRecommendations.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Container(
-              width: double.infinity,
-              decoration: ShapeDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment(0.96, -0.29),
-                  end: Alignment(-0.96, 0.29),
-                  colors: [
-                    Color(0x99191919), 
-                    Color(0x99282828),
-                  ],
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28),
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(28),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: controller.filteredRecommendations.length,
-                      itemBuilder: (context, index) {
-                        final recommendation = controller.filteredRecommendations[index];
-                        return GestureDetector(
-                            onTap: () {
-                              // Navigate to search results when recommendation is tapped
-                              Get.to(
-                                () => const ProfileView(),
-                                transition: Transition.rightToLeft,
-                                duration: const Duration(milliseconds: 300),
-                              );
-                              
-                              // Update the search query with the recommendation title
-                              controller.updateSearchQuery(recommendation.title);
-                              controller.isSearching.value = true;
-                            },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8.0,
-                              horizontal: 16.0
-                            ),
-                            child: Row(
-                              children: [
-                                // Item Image
-                                Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                    image: DecorationImage(
-                                      image: NetworkImage(recommendation.image),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                // Item Details
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              recommendation.title,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 14,
-                                                fontFamily: 'Plus Jakarta Sans',
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                          if (recommendation.isPopular)
-                                            Container(
-                                              margin: const EdgeInsets.only(left: 8),
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 8,
-                                                vertical: 2
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFFF8225),
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-                                              child: const Text(
-                                                'Popular',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10,
-                                                  fontFamily: 'Plus Jakarta Sans',
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            recommendation.price,
-                                            style: const TextStyle(
-                                              color: Color(0xFFAAAAAA),
-                                              fontSize: 12,
-                                              fontFamily: 'Plus Jakarta Sans',
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    ));
+      ),
+    );
   }
 
   //Banner Style
