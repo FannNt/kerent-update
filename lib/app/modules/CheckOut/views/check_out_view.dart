@@ -1,43 +1,90 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:kerent/app/modules/imageCarousel/views/image_carousel_view.dart';
-import 'package:kerent/app/modules/payment/views/payment_view.dart';
-import '../../../../navbar.dart';
-import '../../../data/models/product.dart';
+import 'package:get/get.dart';
+import 'package:kerent/app/data/models/chat.dart';
+import 'package:kerent/app/data/models/product.dart';
 
-class CheckOutView extends StatefulWidget {
+import '../../../../navbar.dart';
+import '../../../controllers/auth_controller.dart';
+import '../../payment/views/payment_view.dart';
+import '../../profile/controllers/profile_controller.dart';
+import '../../profile/views/profile_view.dart';
+import 'image_carousel.dart';
+
+class CheckoutPage extends StatefulWidget {
+  final Product produk;
+  final profileController = Get.put(ProfileController());
   
-  final Product product;
-  
-  const CheckOutView({super.key, required this.product});
+  CheckoutPage({super.key, required this.produk}); 
 
   @override
   _CheckoutPageState createState() => _CheckoutPageState();
 }
 
-class _CheckoutPageState extends State<CheckOutView> {
-  bool _isExpanded = false; // State untuk menentukan apakah teks diperluas atau tidak
+class _CheckoutPageState extends State<CheckoutPage> {
+  bool _isExpanded = false;
+  ElevatedButton? chatSellerButton;
 
   final List<String> imgList = [
-      widget.product.images[0]
+    'https://via.placeholder.com/400x300/111111/FFFFFF/?text=Laptop+1',
+    'https://via.placeholder.com/400x300/111111/FFFFFF/?text=Laptop+2',
+    'https://via.placeholder.com/400x300/111111/FFFFFF/?text=Laptop+3',
   ];
 
   @override
   Widget build(BuildContext context) {
+    chatSellerButton = ElevatedButton(
+      onPressed: () {
+        final Chat chat = Chat(
+          users: [Get.find<AuthController>().uid.value ?? '', widget.produk.sellerId],
+          usernames: [Get.find<AuthController>().displayName.value, widget.produk.seller],
+          lastMessage: '',
+          lastMessageTime: DateTime.now(),
+          unreadCount: 0,
+        );
+        
+        Get.toNamed('/chat', arguments: chat);
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.transparent,
+        foregroundColor: const Color(0xFFFF8225),
+        elevation: 0,
+        side: const BorderSide(
+          color: Color(0xFFFF8225),
+          width: 1,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 8,
+        ),
+      ),
+      child: const Text(
+        'Chat Seller',
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          fontFamily: 'Plus Jakarta Sans',
+        ),
+      ),
+    );
+
     return CustomScaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ImageCarousel(imgList: imgList),
+              CustomImageCarousel(imgList: imgList),
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.product.name,
+                      widget.produk.name,
                       style: const TextStyle(
                         color: Color(0xFFF8F8F8),
                         fontSize: 16,
@@ -52,14 +99,14 @@ class _CheckoutPageState extends State<CheckOutView> {
                         const Icon(Icons.star, color: Colors.yellow, size: 16),
                         const SizedBox(width: 4),
                         Text(
-                          '${widget.product.rating}',
+                          widget.produk.rating.toString(),
                           style: TextStyle(color: Colors.grey[400], fontSize: 14),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${widget.product.price}',
+                      widget.produk.price.toString(),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -72,18 +119,7 @@ class _CheckoutPageState extends State<CheckOutView> {
                         Icon(Icons.class_, color: Colors.grey[400], size: 16),
                         const SizedBox(width: 4),
                         Text(
-                          'Kelas: ${widget.product.kelas}',
-                          style: TextStyle(color: Colors.grey[400], fontSize: 14),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.person, color: Colors.grey[400], size: 16),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Seller: ${widget.product.seller}',
+                          'Kelas: ${widget.produk.kelas}',
                           style: TextStyle(color: Colors.grey[400], fontSize: 14),
                         ),
                       ],
@@ -94,31 +130,93 @@ class _CheckoutPageState extends State<CheckOutView> {
                         Icon(Icons.production_quantity_limits, color: Colors.grey[400], size: 16),
                         const SizedBox(width: 4),
                         Text(
-                          'Stock: ${widget.product.stock}',
+                          'Stock: ${widget.produk.stock}',
                           style: TextStyle(color: Colors.grey[400], fontSize: 14),
                         ),
                       ],
                     ),
-
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        InkWell(
+                          onTap: () => Get.to(() => const PublicProfilePage(), arguments: widget.produk),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF8225),
+                            shape: BoxShape.circle,
+                            image: widget.profileController.profileImage.isNotEmpty
+                                ? DecorationImage(
+                                    image: NetworkImage(widget.profileController.profileImage.value),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                          ),
+                          child: widget.profileController.profileImage.value.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    widget.produk.seller[0].toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : null,
+                        ),
+                      ), 
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: InkWell( // Ganti GestureDetector dengan InkWell
+                            onTap: () => Get.to(() => const PublicProfilePage(), arguments: widget.produk),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.produk.seller,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                    fontFamily: 'Plus Jakarta Sans',
+                                  ),
+                                ),
+                                const Text(
+                                  'Aktif 2 jam yang lalu',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                    fontFamily: 'Plus Jakarta Sans',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        chatSellerButton!,
+                      ],
+                    ),
                     const SizedBox(height: 16),
-                    _buildInfoSection('Kondisi: ', widget.product.kondisi),
-                    _buildInfoSection('Etalase', widget.product.etalase),
-                    _buildInfoSection('Deskripsi Produk', widget.product.deskripsi),
+                    _buildInfoSection('Kondisi: ', widget.produk.kondisi),
+                    _buildInfoSection('Etalase', widget.produk.etalase),
+                    _buildInfoSection('Deskripsi Produk', widget.produk.deskripsi),
                     const SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: () {
                         Navigator.push(
                           context, 
                           MaterialPageRoute(
-                          builder: (context) => PaymentView(product: widget.product,),
-                        ),
-                      );
+                            builder: (context) => PaymentView(product: widget.produk),
+                          ),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
                         minimumSize: const Size(double.infinity, 50),
                       ),
-                      child: Text('Check Out'),
+                      child: const Text('Rent Now'),
                     ),
                   ],
                 ),
@@ -131,10 +229,9 @@ class _CheckoutPageState extends State<CheckOutView> {
     );
   }
 
-  // Method untuk membangun bagian informasi dengan fitur "Lihat Selengkapnya"
   Widget _buildInfoSection(String title, String content) {
-    const int wordLimit = 50; // Batas jumlah kata
-    List<String> words = content.split(' '); // Memisahkan konten menjadi list kata
+    const int wordLimit = 50;
+    List<String> words = content.split(' ');
 
     String displayedText = _isExpanded || words.length <= wordLimit
         ? content
@@ -146,7 +243,10 @@ class _CheckoutPageState extends State<CheckOutView> {
         Text(
           title,
           style: const TextStyle(
-              color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold
+          ),
         ),
         const SizedBox(height: 4),
         Text.rich(
@@ -156,18 +256,18 @@ class _CheckoutPageState extends State<CheckOutView> {
               color: Colors.grey[400],
               fontSize: 14,
               fontWeight: FontWeight.w600            
-              ),
+            ),
             children: [
               if (words.length > wordLimit)
                 TextSpan(
                   text: _isExpanded ? ' Lihat lebih sedikit' : ' \nLihat selengkapnya',
                   style: const TextStyle(
                     color: Colors.blue
-                    ),
+                  ),
                   recognizer: TapGestureRecognizer()
                     ..onTap = () {
                       setState(() {
-                        _isExpanded = !_isExpanded; // Toggle state saat ditekan
+                        _isExpanded = !_isExpanded;
                       });
                     },
                 ),

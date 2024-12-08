@@ -253,7 +253,7 @@ Widget _buildCarouselItem(BuildContext context, String title, String subtitle, S
                   Navigator.push(
                       context, 
                     MaterialPageRoute(
-                      builder: (context) => CheckOutView(product: controller.filteredProducts[index]),
+                      builder: (context) => CheckoutPage(produk: controller.filteredProducts[index]),
                     ),
                   );
                 },
@@ -366,8 +366,8 @@ Widget _buildCarouselItem(BuildContext context, String title, String subtitle, S
         Navigator.push(
           context, 
           MaterialPageRoute(
-            builder: (context) => CheckOutView(
-              product: controller.filteredProducts[index]
+            builder: (context) => CheckoutPage(
+              produk: controller.filteredProducts[index]
             ),
           ),
         );
@@ -548,7 +548,7 @@ Widget _buildForYouCard(BuildContext context, Product product, BoxConstraints co
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => CheckOutView(product: product),
+            builder: (context) => CheckoutPage(produk: product),
           ),
         );
       },

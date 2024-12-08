@@ -244,7 +244,7 @@ Widget _buildProductCard(BuildContext context, Product product, BoxConstraints c
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => CheckOutView(product: product),
+            builder: (context) => CheckoutPage(produk: product),
           ),
         );
       },
