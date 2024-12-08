@@ -92,6 +92,8 @@ class RegisterController extends GetxController {
           'lastSignInTime': FieldValue.serverTimestamp(),
           'isEmailVerified': userCredential.user?.emailVerified ?? false,
           'profileImageUrl': userCredential.user?.photoURL ?? '',
+          'isOnline': true,
+          'lastSeen': FieldValue.serverTimestamp(),
           'userPreferences': {
             'theme': '',
             'notifications': false
@@ -186,10 +188,12 @@ class RegisterController extends GetxController {
       final userData = {
         'username': username.value.isNotEmpty ? username.value : user.displayName ?? 'New User',
         'email': user.email ?? email.value,
-        'phoneNumber': phoneNumber.value, // Use the phone number from the form
+        'phoneNumber': phoneNumber.value,
         'lastSignInTime': FieldValue.serverTimestamp(),
         'isEmailVerified': user.emailVerified,
         'profileImageUrl': user.photoURL,
+        'isOnline': true,
+        'lastSeen': FieldValue.serverTimestamp(),
       };
 
       if (isNewUser) {

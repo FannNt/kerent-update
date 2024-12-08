@@ -6,58 +6,113 @@ import '../../../data/models/chat.dart';
 class ChatController extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  final Rx<Chat> recipient = Chat(users: [], usernames: [], lastMessage: '', lastMessageTime: DateTime.now(), unreadCount: 0).obs;
-  final RxList<Chat> messages = <Chat>[].obs;
-
-  void setRecipient(Chat user) {
-    recipient.value = user;
-    fetchMessages();
+  
+  final RxList<Chat> chats = <Chat>[].obs;
+  final RxBool isLoading = true.obs;
+  
+  @override
+  void onInit() {
+    super.onInit();
+    loadChats();
   }
 
-  void fetchMessages() {
-  final currentUserId = _auth.currentUser!.uid;
-  final recipientId = recipient.value.users[0];
+  Future<void> loadChats() async {
+    try {
+      isLoading.value = true;
+      final currentUserId = _auth.currentUser?.uid;
+      if (currentUserId == null) return;
 
-  final chatId = currentUserId.compareTo(recipientId) < 0 
-      ? '${currentUserId}_$recipientId' 
-      : '${recipientId}_$currentUserId';
-
-  _firestore.collection('private_chats')
-    .where('chatId', isEqualTo: chatId)
-    .orderBy('timestamp', descending: true)
-    .limit(50)
-    .snapshots()
-    .listen((snapshot) {
-      messages.value = snapshot.docs.map((doc) => Chat.fromDocument(doc)).toList();
-    });
-}
-
-void sendMessage(String content) {
-  final currentUserId = _auth.currentUser!.uid;
-  final currentUserName = _auth.currentUser!.displayName;
-  final recipientId = recipient.value.users[0];
-
-  // Create chatId in the same way as in fetchMessages
-  final chatId = currentUserId.compareTo(recipientId) < 0 
-      ? '${currentUserId}_$recipientId' 
-      : '${recipientId}_$currentUserId';
-
-  _firestore.collection('private_chats').add({
-    'chatId': chatId,
-    'content': content,
-    'senderId': currentUserId,
-    'senderName' : currentUserName,
-    'recipientId': recipientId,
-    'timestamp': FieldValue.serverTimestamp(),
-  });
-}
-String generateChatId() {
-    final currentUserId = _auth.currentUser!.uid;
-    final recipientId =recipient.value.users[0];
-    return currentUserId.compareTo(recipientId) < 0 
-        ? '${currentUserId}_$recipientId' 
-        : '${recipientId}_$currentUserId';
+      // Listen to chats where current user is involved
+      _firestore
+          .collection('chats')
+          .where('users', arrayContains: currentUserId)
+          .snapshots()
+          .listen((snapshot) {
+        chats.value = snapshot.docs
+            .map((doc) => Chat.fromDocument(doc))
+            .toList()
+          ..sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+      });
+    } catch (e) {
+      print('Error loading chats: $e');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
+  Future<void> sendMessage(String chatId, String message) async {
+    try {
+      final currentUserId = _auth.currentUser?.uid;
+      if (currentUserId == null) return;
+
+      await _firestore.collection('chats').doc(chatId).collection('messages').add({
+        'senderId': currentUserId,
+        'message': message,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      // Update last message in chat document
+      await _firestore.collection('chats').doc(chatId).update({
+        'lastMessage': message,
+        'lastMessageTime': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('Error sending message: $e');
+    }
+  }
+
+  Future<String?> createOrGetChat(String otherUserId, String otherUsername) async {
+    try {
+      final currentUserId = _auth.currentUser?.uid;
+      if (currentUserId == null) return null;
+
+      // Get current username from Firestore
+      final currentUserDoc = await _firestore
+          .collection('users')
+          .doc(currentUserId)
+          .get();
+      
+      final currentUsername = currentUserDoc.data()?['username'] ?? 'Unknown User';
+
+      // Check if chat already exists
+      final querySnapshot = await _firestore
+          .collection('chats')
+          .where('users', arrayContains: currentUserId)
+          .get();
+
+      for (var doc in querySnapshot.docs) {
+        List<String> users = List<String>.from(doc['users']);
+        if (users.contains(otherUserId)) {
+          // Update usernames in case they've changed
+          await doc.reference.update({
+            'usernames': [currentUsername, otherUsername]
+          });
+          return doc.id;
+        }
+      }
+
+      // Create new chat if it doesn't exist
+      final chatDoc = await _firestore.collection('chats').add({
+        'users': [currentUserId, otherUserId],
+        'usernames': [currentUsername, otherUsername],
+        'lastMessage': '',
+        'lastMessageTime': FieldValue.serverTimestamp(),
+        'unreadCount': 0,
+      });
+
+      return chatDoc.id;
+    } catch (e) {
+      print('Error creating/getting chat: $e');
+      return null;
+    }
+  }
+
+  Stream<QuerySnapshot> getMessages(String chatId) {
+    return _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
 }

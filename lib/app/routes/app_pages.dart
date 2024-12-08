@@ -1,18 +1,18 @@
 import 'package:get/get.dart';
+import 'package:kerent/app/modules/loading/loading.dart';
 
-import '../modules/CheckOut/bindings/check_out_binding.dart';
-import '../modules/CheckOut/views/check_out_view.dart';
+
 import '../modules/addProduct/bindings/add_product_binding.dart';
 import '../modules/addProduct/views/add_product_view.dart';
 import '../modules/chat/bindings/chat_binding.dart';
 import '../modules/chat/views/chat_list_view.dart';
-import '../modules/chat/views/chat_view.dart';
 import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/home_view.dart';
 import '../modules/imageCarousel/bindings/image_carousel_binding.dart';
 import '../modules/imageCarousel/views/image_carousel_view.dart';
 import '../modules/inbox/bindings/inbox_binding.dart';
 import '../modules/inbox/views/inbox_view.dart';
+import '../modules/loading/loading_controller.dart';
 import '../modules/login/bindings/login_binding.dart';
 import '../modules/login/views/login_view.dart';
 import '../modules/mainMenu/bindings/main_menu_binding.dart';
@@ -35,6 +35,13 @@ class AppPages {
 
   static final routes = [
     GetPage(
+      name: '/',
+      page: () => const LoadingPage(),
+      binding: BindingsBuilder(() {
+        Get.put(LoadingController());
+      }),
+    ),
+    GetPage(
       name: _Paths.HOME,
       page: () => const HomeView(),
       binding: HomeBinding(),
@@ -49,6 +56,7 @@ class AppPages {
       name: _Paths.MAIN_MENU,
       page: () => MainMenuView(),
       binding: MainMenuBinding(),
+      // middlewares: [AuthMiddleware()],
     ),
     // GetPage(
     //   name: _Paths.CHECK_OUT,
@@ -64,7 +72,7 @@ class AppPages {
     ),
     GetPage(
       name: _Paths.CHAT,
-      page: () => const ChatListView(),
+      page: () =>  ChatListPage(),
       binding: ChatBinding(),
     ),
     GetPage(

@@ -12,6 +12,7 @@ class AuthService extends GetxService {
   @override
   void onInit() {
     super.onInit();
+    updateUserOnlineStatus(true);
     user.bindStream(_auth.authStateChanges());
   }
   User? get currentUser => _auth.currentUser;
@@ -55,6 +56,7 @@ class AuthService extends GetxService {
     try {
       await _auth.signOut();
       await _googleSignIn.signOut();
+      updateUserOnlineStatus(false);
       print('User signed out successfully');
     } catch (e) {
       print('Error signing out: $e');
@@ -94,5 +96,19 @@ class AuthService extends GetxService {
       print('Error updating password: $e');
       throw e;
     }
+  }
+  void updateUserOnlineStatus(bool isOnline) {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+      'isOnline': isOnline,
+      'lastSeen': FieldValue.serverTimestamp(),
+    });
+    }
+  }
+  @override
+  void onClose() {
+    updateUserOnlineStatus(false);
+    super.onClose();
   }
 }

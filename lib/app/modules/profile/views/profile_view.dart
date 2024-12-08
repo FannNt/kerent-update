@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kerent/app/data/models/chat.dart';
 import 'package:kerent/app/modules/profile/controllers/profile_controller.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../controllers/auth_controller.dart';
+import '../../chat/controllers/chat_controller.dart';
+import '../../chat/views/chat_view.dart';
 import 'follower_view.dart';
 import 'following_view.dart';
 
@@ -21,53 +22,72 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
   final AuthController authController = Get.find<AuthController>();
 
   @override
-  void initState() {
-    super.initState();
-    final args = Get.arguments as Map<String, dynamic>?;
-    final String userId = args?['userId'] ?? authController.uid.value;
-    
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      profileController.initializeProfileForUser(userId);
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final args = Get.arguments as Map<String, dynamic>?;
+    final isPreview = args?['isPreview'] ?? false;
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         backgroundColor: Colors.black,
         body: SafeArea(
-          child: NestedScrollView(
-            headerSliverBuilder: (context, innerBoxIsScrolled) {
-              return [
-                SliverToBoxAdapter(
-                  child: Column(
+          child: Stack(
+            children: [
+              GetX<ProfileController>(
+                builder: (controller) => NestedScrollView(
+                  headerSliverBuilder: (context, innerBoxIsScrolled) {
+                    return [
+                      SliverToBoxAdapter(
+                        child: Column(
+                          children: [
+                            _buildHeader(context),
+                            _buildProfileInfo(controller),
+                          ],
+                        ),
+                      ),
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _SliverAppBarDelegate(
+                          _buildTabBar(),
+                        ),
+                      ),
+                    ];
+                  },
+                  body: TabBarView(
                     children: [
-                      _buildHeader(context),
-                      _buildProfileInfoWrapper(),
+                      _buildBarangDisewakan(controller),
+                      const Center(
+                        child: Text(
+                          'Review Tab',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: _SliverAppBarDelegate(
-                    _buildTabBar(),
+              ),
+              if (isPreview)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    color: Colors.grey[800],
+                    child: const Center(
+                      child: Text(
+                        'This is how others see your profile',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ];
-            },
-            body: TabBarView(
-              children: [
-                _buildBarangDisewakanWrapper(),
-                const Center(
-                  child: Text(
-                    'Review Tab',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
+            ],
           ),
         ),
       ),
@@ -103,55 +123,12 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                 ),
             ],
           ),
-          if (isPreview)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              color: Colors.grey[800],
-              child: const Center(
-                child: Text(
-                  'This is how others see your profile',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
   }
 
-  Widget _buildProfileInfoWrapper() {
-    return Obx(() => profileController.isLoading.value
-      ? const Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFFFF8225),
-          ),
-        )
-      : _buildProfileInfo(
-          profileController.profileImage.value,
-          profileController.username.value,
-          profileController.classOrPosition.value,
-          profileController.description.value,
-        ),
-    );
-  }
-
-  Widget _buildBarangDisewakanWrapper() {
-    return Obx(() => profileController.isLoading.value
-      ? const Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFFFF8225),
-          ),
-        )
-      : _buildBarangDisewakanGrid(),
-    );
-  }
-
-  Widget _buildProfileInfo(String profileImage, String username, String classOrPosition, String description) {
+  Widget _buildProfileInfo(ProfileController controller) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
@@ -159,24 +136,25 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         children: [
           Column(
             children: [
-              // Profile image and basic info
               Container(
                 width: 100,
                 height: 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: const Color(0xFFFF8225),
-                  image: profileImage.isNotEmpty
+                  image: controller.profileImage.value.isNotEmpty
                       ? DecorationImage(
-                          image: NetworkImage(profileImage),
+                          image: NetworkImage(controller.profileImage.value),
                           fit: BoxFit.cover,
                         )
                       : null,
                 ),
-                child: profileImage.isEmpty
+                child: controller.profileImage.value.isEmpty
                     ? Center(
                         child: Text(
-                          username.isNotEmpty ? username[0].toUpperCase() : '',
+                          controller.username.value.isNotEmpty 
+                              ? controller.username.value[0].toUpperCase() 
+                              : '',
                           style: const TextStyle(
                             fontSize: 40,
                             color: Colors.white,
@@ -187,14 +165,13 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                     : null,
               ),
               const SizedBox(height: 16),
-              // Followers/Following count - wrapped in Obx
-              Obx(() => Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   GestureDetector(
                     onTap: () => Get.to(() => const FollowersPage()),
                     child: Text(
-                      '${profileController.followersCount} Pengikut',
+                      '${controller.followersCount} Pengikut',
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),
@@ -202,14 +179,13 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                   GestureDetector(
                     onTap: () => Get.to(() => const FollowingPage()),
                     child: Text(
-                      '${profileController.followingCount} Mengikuti',
+                      '${controller.followingCount} Mengikuti',
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),
                 ],
-              )),
+              ),
               const SizedBox(height: 16),
-              // Follow/Chat buttons - wrapped in Obx
               Obx(() {
                 final args = Get.arguments as Map<String, dynamic>?;
                 final isCurrentUser = args?['isCurrentUser'] ?? false;
@@ -222,60 +198,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                 return Row(
                   children: [
                     if (!isCurrentUser) ...[
-                      ElevatedButton(
-                        onPressed: () => profileController.toggleFollow(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: profileController.isFollowing.value
-                              ? Colors.grey[800]
-                              : const Color(0xFF25C8FF),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          minimumSize: const Size(0, 40),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          profileController.isFollowing.value ? 'Mengikuti' : 'Ikuti',
-                          style: const TextStyle(
-                            fontFamily: 'Plus Jakarta Sans',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: () {
-                          final Chat chat = Chat(
-                            users: [authController.uid.value ?? '', profileController.targetUserId ?? ''],
-                            usernames: [authController.displayName.value, profileController.username.value],
-                            lastMessage: '',
-                            lastMessageTime: DateTime.now(),
-                            unreadCount: 0,
-                          );
-                          Get.toNamed('/chat', arguments: chat);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF222222),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          minimumSize: const Size(0, 40),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          'Chat',
-                          style: TextStyle(
-                            fontFamily: 'Plus Jakarta Sans',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
+                      _buildActionButtons(controller),
                     ],
                   ],
                 );
@@ -288,7 +211,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  username,
+                  controller.username.value,
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -297,7 +220,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  classOrPosition,
+                  controller.classOrPosition.value,
                   style: const TextStyle(
                     color: Colors.grey,
                     fontSize: 14,
@@ -305,7 +228,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  description,
+                  controller.description.value,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -340,17 +263,23 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     );
   }
 
-  Widget _buildBarangDisewakanGrid() {
-    if (profileController.error.isNotEmpty) {
+  Widget _buildBarangDisewakan(ProfileController controller) {
+    if (controller.isLoading.value) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFFF8225)),
+      );
+    }
+    
+    if (controller.error.isNotEmpty) {
       return Center(
         child: Text(
-          profileController.error.value,
+          controller.error.value,
           style: const TextStyle(color: Colors.white),
         ),
       );
     }
 
-    if (profileController.rentedItems.isEmpty) {
+    if (controller.rentedItems.isEmpty) {
       return const Center(
         child: Text(
           'No items found',
@@ -367,9 +296,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         crossAxisSpacing: 16.0,
         mainAxisSpacing: 16.0,
       ),
-      itemCount: profileController.rentedItems.length,
+      itemCount: controller.rentedItems.length,
       itemBuilder: (context, index) {
-        final product = profileController.rentedItems[index];
+        final product = controller.rentedItems[index];
         return _buildProductCard(
           product['name'] ?? '',
           'Rp ${product['price'] ?? 0}',
@@ -440,6 +369,92 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildActionButtons(ProfileController controller) {
+    final args = Get.arguments as Map<String, dynamic>?;
+    final isCurrentUser = args?['isCurrentUser'] ?? false;
+    final isPreview = args?['isPreview'] ?? false;
+
+    if (isPreview) {
+      return const SizedBox.shrink();
+    }
+
+    if (isCurrentUser) {
+      return const SizedBox.shrink();
+    }
+
+    return Row(
+      children: [
+        GetBuilder<ProfileController>(
+          builder: (controller) => ElevatedButton(
+            onPressed: () => controller.toggleFollow(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: controller.isFollowing.value
+                  ? Colors.grey[800]
+                  : const Color(0xFF25C8FF),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(0, 40),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              controller.isFollowing.value ? 'Mengikuti' : 'Ikuti',
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        ElevatedButton(
+          onPressed: () {
+            final chatController = Get.put(ChatController());
+            final targetUserId = args?['userId'] ?? authController.uid.value;
+            
+            chatController.createOrGetChat(
+              targetUserId,
+              controller.username.value.isNotEmpty 
+                  ? controller.username.value 
+                  : 'Unknown Seller',
+            ).then((chatId) {
+              if (chatId != null) {
+                Get.to(() => MessagePage(
+                  recipientId: targetUserId,
+                  recipientName: controller.username.value.isNotEmpty 
+                      ? controller.username.value 
+                      : 'Unknown Seller',
+                  chatId: chatId,
+                ));
+              }
+            });
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF222222),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            minimumSize: const Size(0, 40),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: const Text(
+            'Chat',
+            style: TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

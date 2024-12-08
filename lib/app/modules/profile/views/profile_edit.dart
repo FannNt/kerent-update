@@ -5,6 +5,7 @@ import 'package:kerent/app/modules/profile/views/profile_view.dart';
 import 'dart:async';
 
 
+import '../../../controllers/auth_controller.dart';
 import '../../../services/auth_service.dart';
 import 'follower_view.dart';
 import 'following_view.dart';
@@ -19,6 +20,7 @@ class ProfileEditView extends StatefulWidget {
 
 class _ProfileEditViewState extends State<ProfileEditView> {
   final AuthService _authService = Get.find();
+  final AuthController _authController = Get.find();
   final ProfileController _profileEditController = Get.put(ProfileController());
   final TextEditingController _otpController = TextEditingController();
   final TextEditingController _newValueController = TextEditingController();
@@ -810,6 +812,8 @@ Widget _buildProductCard(String name, String price, String imageUrl) {
   void _saveProfileChanges() async {
     try {
       await _profileEditController.saveProfileChanges();
+
+      await _authController.loadUserData();
       Get.snackbar(
         'Success',
         'Profil berhasil diperbarui',

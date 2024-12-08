@@ -6,7 +6,7 @@ class Chat {
   final String lastMessage;
   final DateTime lastMessageTime;
   final int unreadCount;
-  String? id; // Optional ID for when chat is created
+  String? id;
 
   Chat({
     required this.users,
@@ -24,7 +24,7 @@ class Chat {
       users: List<String>.from(data['users'] ?? []),
       usernames: List<String>.from(data['usernames'] ?? []),
       lastMessage: data['lastMessage'] ?? '',
-      lastMessageTime: (data['lastMessageTime'] as Timestamp).toDate(),
+      lastMessageTime: (data['lastMessageTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
       unreadCount: data['unreadCount'] ?? 0,
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../services/auth_service.dart';
+import '../../../controllers/auth_controller.dart';
 
 class ProfileController extends GetxController {
   final AuthService _authService = Get.find<AuthService>();
@@ -135,12 +136,21 @@ class ProfileController extends GetxController {
     try {
       String? uid = _authService.userUid;
       if (uid != null) {
+        // Update Firestore
         await _firestore.collection('users').doc(uid).update({
           'username': username.value,
           'classOrPosition': classOrPosition.value,
           'description': description.value,
-          // Don't update phone and password here - they have separate flows
         });
+
+        // Update Firebase Auth display name
+        await _authService.currentUser?.updateDisplayName(username.value);
+        
+        // Update AuthController's display name
+        Get.find<AuthController>().displayName.value = username.value;
+        
+        // Reload the user to ensure all changes are reflected
+        await _authService.currentUser?.reload();
       }
     } catch (e) {
       print('Error saving profile changes: $e');

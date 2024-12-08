@@ -10,11 +10,13 @@ import 'package:kerent/app/modules/profile/views/profile_view.dart';
 
 import '../../../../navbar.dart';
 import '../../inbox/views/inbox_view.dart';
+import '../../profile/controllers/profile_controller.dart';
 import '../../searchResult/views/search_result_view.dart';
 import '../../searchResult/controllers/search_result_controller.dart';
 
 class MainMenuView extends GetView<MainMenuController> {
-  const MainMenuView({super.key});
+  MainMenuView({super.key});
+  final ProfileController profileController = Get.put(ProfileController());
 
   @override
   Widget build(BuildContext context) {
@@ -56,15 +58,15 @@ class MainMenuView extends GetView<MainMenuController> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Hai, ${_auth.displayName}!', 
+              Obx(() => Text(
+                'Hai, ${_auth.displayName.value}!', 
                 style: const TextStyle(
                   fontSize: 20, 
                   fontWeight: FontWeight.w800, 
                   color: Color(0xffF8F8F8), 
                   fontFamily: 'Plus Jakarta Sans'
                 )
-              ),
+              )),
               const Opacity(
                 opacity: 0.50,
                 child: Text(

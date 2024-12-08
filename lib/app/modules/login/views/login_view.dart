@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import '../controllers/login_controller.dart';
 
 class LoginView extends GetView<LoginController> {
+  final formKey = GlobalKey<FormState>();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -11,25 +13,28 @@ class LoginView extends GetView<LoginController> {
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-                SizedBox(height: 40),
-                _buildWelcomeText(),
-                SizedBox(height: 20),
-                _buildInputFields(),
-                SizedBox(height: 20),
-                _buildForgotPassword(),
-                SizedBox(height: 30),
-                _buildLoginButton(),
-                SizedBox(height: 20),
-                _buildDivider(),
-                SizedBox(height: 20),
-                _buildSocialButtons(),
-                SizedBox(height: 20),
-                _buildRegisterPrompt(),
-              ],
+            child: Form(
+              key: formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  SizedBox(height: 40),
+                  _buildWelcomeText(),
+                  SizedBox(height: 20),
+                  _buildInputFields(),
+                  SizedBox(height: 20),
+                  _buildForgotPassword(),
+                  SizedBox(height: 30),
+                  _buildLoginButton(),
+                  SizedBox(height: 20),
+                  _buildDivider(),
+                  SizedBox(height: 20),
+                  _buildSocialButtons(),
+                  SizedBox(height: 20),
+                  _buildRegisterPrompt(),
+                ],
+              ),
             ),
           ),
         ),
@@ -104,6 +109,18 @@ class LoginView extends GetView<LoginController> {
         value.value = val;
       },
       controller: TextEditingController(text: value.value),
+      validator: (val) {
+        if (val == null || val.isEmpty) {
+          return 'This field is required';
+        }
+        if (isEmail && !GetUtils.isEmail(val)) {
+          return 'Please enter a valid email';
+        }
+        if (isPassword && val.length < 8) {
+          return 'Password must be at least 8 characters';
+        }
+        return null;
+      },
     );
   }
 
@@ -124,7 +141,11 @@ class LoginView extends GetView<LoginController> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: controller.login,
+        onPressed: () {
+          if (formKey.currentState!.validate()) {
+            controller.login();
+          }
+        },
         child: Text('Login'),
         style: ElevatedButton.styleFrom(
           foregroundColor: Colors.white,

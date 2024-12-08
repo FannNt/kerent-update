@@ -151,11 +151,8 @@ class _InboxPageState extends State<InboxPage> with SingleTickerProviderStateMix
   }
 
   void _navigateToMessage(RentRequest request, String message) {
-    Get.to(() => ChatView(
-      recipientName: request.customerName,
-      profileColor: Colors.orange,
-      initialMessage: message,
-      rentRequest: request,
+    Get.to(() => MessagePage(
+      recipientName: request.customerName, recipientId: '', chatId: '',
     ));
   }
 

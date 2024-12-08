@@ -2,10 +2,12 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../../services/auth_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginController extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final AuthService _authService = Get.find<AuthService>();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
 
   final email = ''.obs;
@@ -41,6 +43,7 @@ class LoginController extends GetxController {
         password: password.value,
       );
       await _authService.saveUserData(userCredential.user!);
+      await updateOnlineStatus(true);
     } on FirebaseAuthException catch (e) {
       Get.snackbar(
         'Error',
@@ -76,6 +79,7 @@ class LoginController extends GetxController {
   }
 
   Future<void> logout() async {
+    await updateOnlineStatus(false);
     await _authService.signOut();
   }
 
@@ -87,5 +91,21 @@ class LoginController extends GetxController {
   // Get current user
   User? getCurrentUser() {
     return _auth.currentUser;
+  }
+
+  Future<void> updateOnlineStatus(bool isOnline) async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await _firestore.collection('users').doc(user.uid).update({
+        'isOnline': isOnline,
+        'lastSeen': FieldValue.serverTimestamp(),
+      });
+    }
+  }
+
+  @override
+  void onClose() {
+    updateOnlineStatus(false);
+    super.onClose();
   }
 }
