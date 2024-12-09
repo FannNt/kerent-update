@@ -1,5 +1,6 @@
-  import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 import '../../../data/models/product.dart';
 import '../controllers/payment_controller.dart';
@@ -13,46 +14,39 @@ class PaymentView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-            resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: true,
       backgroundColor: Colors.black87,
       appBar: AppBar(
         backgroundColor: Colors.black,
+        title: Text('Payment Details', style: TextStyle(color: Colors.white)),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: SingleChildScrollView(
-        child: Form( // Add Form widget
-          key: controller.formKey,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                _buildProductCard(),
-                SizedBox(height: 16),
-                _buildForm(),
-                SizedBox(height: 16),
-                _buildRentButton(),
-              ],
-            ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildProductCard(),
+              SizedBox(height: 16),
+              _buildDurationDropdown(),
+              SizedBox(height: 24),
+              _buildUserInfo(),
+              SizedBox(height: 24),
+              _buildPriceBreakdown(),
+              SizedBox(height: 24),
+              _buildRentButton(),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildForm() {
-    return Column(
-      children: [
-        _buildDurationDropdown(),
-        _buildNameField(),
-        _buildClassField(),
-      ],
-    );
-  }
-
-  Widget _buildDurationDropdown() {
+ Widget _buildDurationDropdown() {
     return Obx(() => Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
@@ -85,56 +79,90 @@ class PaymentView extends StatelessWidget {
     ));
   }
 
-  Widget _buildNameField() {
+  Widget _buildUserInfo() {
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 8),
-      padding: EdgeInsets.symmetric(horizontal: 12),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[700],
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.grey[900],
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: TextFormField(
-        controller: controller.nameController,
-        style: TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          labelText: 'Nama',
-          labelStyle: TextStyle(color: Colors.white70),
-          border: InputBorder.none,
-        ),
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Please enter your name';
-          }
-          return null;
-        },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Renter Information',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 12),
+          Obx(() => Column(
+            children: [
+              _buildInfoRow('Name', controller.userName.value),
+              SizedBox(height: 8),
+              _buildInfoRow('Class', controller.userClass.value),
+            ],
+          )),
+        ],
       ),
     );
   }
 
-  Widget _buildClassField() {
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 8),
-      padding: EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.grey[700],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: TextFormField(
-        controller: controller.classController,
-        style: TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          labelText: 'Kelas',
-          labelStyle: TextStyle(color: Colors.white70),
-          border: InputBorder.none,
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(color: Colors.grey[400]),
         ),
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Please enter your class';
-          }
-          return null;
-        },
-      ),
+        Text(
+          value,
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+        ),
+      ],
     );
+  }
+
+  Widget _buildPriceBreakdown() {
+    return Obx(() {
+      final basePrice = product.price;
+      final totalAmount = controller.calculateAmount(product, controller.selectedDuration.value);
+
+      final formattedBasePrice = NumberFormat.currency(locale: 'id', symbol: 'Rp. ', decimalDigits: 0).format(basePrice);
+      final formattedTotalAmount = NumberFormat.currency(locale: 'id', symbol: 'Rp. ', decimalDigits: 0).format(totalAmount);
+
+      return Container(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey[900],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Price Details',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 12),
+            _buildInfoRow('Base Price', formattedBasePrice),
+            SizedBox(height: 8),
+            _buildInfoRow('Duration', controller.selectedDuration.value),
+            SizedBox(height: 8),
+            Divider(color: Colors.grey[700]),
+            SizedBox(height: 8),
+            _buildInfoRow('Total Amount', formattedTotalAmount),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildRentButton() {
@@ -157,46 +185,50 @@ class PaymentView extends StatelessWidget {
       ),
     ));
   }
+
   Widget _buildProductCard() {
+    final formattedPrice = NumberFormat.currency(locale: 'id', symbol: 'Rp. ', decimalDigits: 0).format(product.price);
     return Card(
-              color: Colors.transparent,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 180,
-                      height: 180,
-                      decoration: ShapeDecoration(
-                        color: const Color(0xFF31363F),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: Image.network(product.images),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      product.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFF8F8F8),
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      "${product.price}",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFFF8F8F8),
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+      color: Colors.transparent,
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          children: [
+            Center(
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: ShapeDecoration(
+                  color: const Color(0xFF31363F),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
+                child: Image.network(product.images),
               ),
-            );
+            ),
+            const SizedBox(height: 8),
+            Text(
+              product.name,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFF8F8F8),
+                fontFamily: 'Plus Jakarta Sans',
+                fontSize: 14,
+              ),
+            ),
+            Text(
+              formattedPrice,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Color(0xFFF8F8F8),
+                fontFamily: 'Plus Jakarta Sans',
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kerent/app/data/models/product.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:intl/intl.dart';
 
 import '../../../controllers/auth_controller.dart';
 import '../../payment/views/payment_view.dart';
@@ -28,6 +30,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final controller = Get.find<CheckoutController>();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final RxString sellerName = ''.obs;
+  final RxBool isLoading = true.obs;
 
   @override
   void initState() {
@@ -37,6 +40,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Future<void> loadSellerInfo() async {
     try {
+      isLoading.value = true;
       final sellerDoc = await _firestore
           .collection('users')
           .doc(widget.produk.sellerId)
@@ -45,6 +49,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       sellerName.value = sellerDoc.data()?['username'] ?? 'Unknown Seller';
     } catch (e) {
       print('Error loading seller info: $e');
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -135,17 +141,33 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.star, color: Colors.yellow, size: 16),
-                            const SizedBox(width: 4),
+                            RatingBarIndicator(
+                              rating: widget.produk.rating,
+                              itemBuilder: (context, index) => const Icon(
+                                Icons.star,
+                                color: Color(0xFFFF8225),
+                              ),
+                              itemCount: 5,
+                              itemSize: 20,
+                              unratedColor: Colors.grey[700],
+                            ),
+                            const SizedBox(width: 8),
                             Text(
-                              widget.produk.rating.toString(),
-                              style: TextStyle(color: Colors.grey[400], fontSize: 14),
+                              widget.produk.rating.toStringAsFixed(1),
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 14,
+                              ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          widget.produk.price.toString(),
+                          NumberFormat.currency(
+                            locale: 'id', 
+                            symbol: 'Rp. ', 
+                            decimalDigits: 0
+                          ).format(widget.produk.price),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -227,15 +249,25 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Obx(() => Text(
-                                      sellerName.value,
-                                      style: const TextStyle(
-                                        color: Color(0xFFF8F8F8),
-                                        fontSize: 14,
-                                        fontFamily: 'Plus Jakarta Sans',
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    )),
+                                    Obx(() => isLoading.value
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+                                          ),
+                                        )
+                                      : Text(
+                                          sellerName.value,
+                                          style: const TextStyle(
+                                            color: Color(0xFFF8F8F8),
+                                            fontSize: 14,
+                                            fontFamily: 'Plus Jakarta Sans',
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                    ),
                                     const Text(
                                       'Aktif 2 jam yang lalu',
                                       style: TextStyle(

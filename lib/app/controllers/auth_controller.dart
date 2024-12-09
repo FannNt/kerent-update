@@ -80,9 +80,12 @@ class AuthController extends GetxController {
           }
           
           // Update other user data
-          phoneNumber.value = userData.data()?['phoneNumber'];
-          email.value = userData.data()?['email'];
-          image.value = userData.data()?['profileImageUrl'];
+          phoneNumber.value = userData.data()?['phoneNumber'] ?? '';
+          email.value = userData.data()?['email'] ?? '';
+          image.value = userData.data()?['profileImageUrl'] ?? '';
+          
+          // Force UI update
+          update();
         }
       }
     } catch (e) {
@@ -153,5 +156,13 @@ class AuthController extends GetxController {
     }
   }
 
+  void clearUserData() {
+    displayName.value = '';
+    phoneNumber.value = '';
+    email.value = '';
+    image.value = '';
+    classOrPosition.value = '';
+    description.value = '';
+  }
 
 }

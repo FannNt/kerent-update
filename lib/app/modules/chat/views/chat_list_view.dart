@@ -547,13 +547,36 @@ class ChatListPage extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              trailing: Text(
-                _formatTime(chat.lastMessageTime),
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _formatTime(chat.lastMessageTime),
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                  if (chat.unreadCount > 0 && chat.lastSenderId != chatController._auth.currentUser!.uid)
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF8225),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${chat.unreadCount}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               onTap: () {
                 final chatController = Get.put(ChatController());
-                
+                chatController.markChatAsRead(chat.id!);
                 Get.to(() => MessagePage(
                   recipientId: chat.users[otherUserIndex],
                   recipientName: chat.usernames[otherUserIndex],

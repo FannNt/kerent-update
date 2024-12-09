@@ -1,20 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Chat {
+  final String? id;
   final List<String> users;
   final List<String> usernames;
   final String lastMessage;
   final DateTime lastMessageTime;
   final int unreadCount;
-  String? id;
+  final String lastSenderId;
 
   Chat({
+    this.id,
     required this.users,
     required this.usernames,
     required this.lastMessage,
     required this.lastMessageTime,
     required this.unreadCount,
-    this.id,
+    required this.lastSenderId,
   });
 
   factory Chat.fromDocument(DocumentSnapshot doc) {
@@ -26,6 +28,7 @@ class Chat {
       lastMessage: data['lastMessage'] ?? '',
       lastMessageTime: (data['lastMessageTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
       unreadCount: data['unreadCount'] ?? 0,
+      lastSenderId: data['lastSenderId'] ?? '',
     );
   }
 
@@ -36,6 +39,7 @@ class Chat {
       'lastMessage': lastMessage,
       'lastMessageTime': Timestamp.fromDate(lastMessageTime),
       'unreadCount': unreadCount,
+      'lastSenderId': lastSenderId,
     };
   }
 }

@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../controllers/auth_controller.dart';
+
 class AuthService extends GetxService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
@@ -57,6 +59,8 @@ class AuthService extends GetxService {
       await _auth.signOut();
       await _googleSignIn.signOut();
       updateUserOnlineStatus(false);
+      // Clear user data after signout
+      Get.find<AuthController>().clearUserData();
       print('User signed out successfully');
     } catch (e) {
       print('Error signing out: $e');

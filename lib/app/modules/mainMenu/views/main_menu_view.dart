@@ -1,6 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'dart:ui';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:kerent/app/controllers/auth_controller.dart';
 import 'package:kerent/app/data/models/product.dart';
 import 'package:kerent/app/modules/CheckOut/views/check_out_view.dart';
@@ -85,17 +89,57 @@ class MainMenuView extends GetView<MainMenuController> {
           // Profile section
           Row(
             children: [
-              GestureDetector(
-                onTap: () {
-                  Get.to(() => const InboxPage(), transition: Transition.rightToLeft);
-                },
-                child: const Icon(
-                  Icons.notifications_sharp, // Ikon inbox
-                  color: Colors.white,
-                  size: 25, // Ukuran ikon
-                ),
+              Stack(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Get.to(() => const InboxPage(), transition: Transition.rightToLeft);
+                    },
+                    child: const Icon(
+                      Icons.notifications_sharp,
+                      color: Colors.white,
+                      size: 25,
+                    ),
+                  ),
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('rentRequests')
+                        .where('productOwnerId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                        .where('status', isEqualTo: 'Pending')
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                        return Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Text(
+                              '${snapshot.data!.docs.length}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(width: 16,),
+              const SizedBox(width: 16),
               GestureDetector(
                 onTap: controller.navigateToProfile,
                 child: Obx(() => Container(
@@ -349,7 +393,7 @@ Widget _buildCarouselItem(BuildContext context, String title, String subtitle, S
         scrollDirection: Axis.horizontal,
         child: Row(
           children: controller.filteredProducts.map((item) {
-            return _buildProduk(
+            return _buildProduct(
               context, 
               item.name, 
               item.price, 
@@ -362,8 +406,10 @@ Widget _buildCarouselItem(BuildContext context, String title, String subtitle, S
     });
   }
 
-  Widget _buildProduk(BuildContext context, String name, double price, String? images, int index) => 
-    GestureDetector(
+  Widget _buildProduct(BuildContext context, String name, double price, String? images, int index) {
+    final formattedPrice = NumberFormat.currency(locale: 'id', symbol: 'Rp. ', decimalDigits: 0).format(price);
+
+    return GestureDetector(
       onTap: () {
         Navigator.push(
           context, 
@@ -381,39 +427,62 @@ Widget _buildCarouselItem(BuildContext context, String title, String subtitle, S
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 153,
-                height: 133,
-                decoration: ShapeDecoration(
-                  color: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+              Stack(
+                children: [
+                  Container(
+                    width: 153,
+                    height: 133,
+                    decoration: ShapeDecoration(
+                      color: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image(
+                        image: NetworkImage(images ?? ''),
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFFFF8225),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey[800],
+                            child: const Icon(
+                              Icons.error_outline,
+                              color: Colors.white,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image(
-                    image: NetworkImage(images??''),
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFFFF8225),
+                  if (!controller.filteredProducts[index].isAvailable)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[800],
-                        child: const Icon(
-                          Icons.error_outline,
-                          color: Colors.white,
+                        child: Center(
+                          child: Text(
+                            'Unavailable',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
                         ),
-                      );
-                    },
-                  ),
-                ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 8),
               Text(
@@ -426,7 +495,7 @@ Widget _buildCarouselItem(BuildContext context, String title, String subtitle, S
                 ),
               ),
               Text(
-                "$price",
+                formattedPrice,
                 style: const TextStyle(
                   fontWeight: FontWeight.normal,
                   color: Color(0xFFF8F8F8),
@@ -434,11 +503,23 @@ Widget _buildCarouselItem(BuildContext context, String title, String subtitle, S
                   fontSize: 10
                 ),
               ),
+              const SizedBox(height: 4),
+              RatingBarIndicator(
+                rating: controller.filteredProducts[index].rating,
+                itemBuilder: (context, index) => const Icon(
+                  Icons.star,
+                  color: Color(0xFFFF8225),
+                ),
+                itemCount: 5,
+                itemSize: 16,
+                unratedColor: Colors.grey[700],
+              ),
             ],
           ),
         ),
-      )
+      ),
     );
+  }
 
   Widget _buildCategoryFilter() {
     return Container(
@@ -529,11 +610,11 @@ Widget _buildForYouSection(BuildContext context) {
 }
 
 Widget _buildForYouCard(BuildContext context, Product product, BoxConstraints constraints) {
-  // Hitung ukuran berdasarkan constraints
+  final formattedPrice = NumberFormat.currency(locale: 'id', symbol: 'Rp. ', decimalDigits: 0).format(product.price);
+
   final isSmallScreen = constraints.maxWidth < 400;
   final isMediumScreen = constraints.maxWidth < 600;
   
-  // Responsive text sizes
   final titleFontSize = isSmallScreen ? 15.0 : (isMediumScreen ? 18.0 : 20.0);
   final priceFontSize = isSmallScreen ? 13.0 : (isMediumScreen ? 15.0 : 17.0);
   final ratingFontSize = isSmallScreen ? 11.0 : (isMediumScreen ? 12.0 : 13.0);
@@ -567,32 +648,32 @@ Widget _buildForYouCard(BuildContext context, Product product, BoxConstraints co
                     top: Radius.circular(16),
                   ),
                   child: Image.network(
-                    product.images??'',
+                    product.images,
                     fit: BoxFit.cover,
                   ),
                 ),
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    height: 50,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.5),
-                        ],
+                if (!product.isAvailable)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Unavailable',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
-          // Content section (Expanded flex: 2)
           Expanded(
             flex: 2,
             child: Padding(
@@ -616,7 +697,7 @@ Widget _buildForYouCard(BuildContext context, Product product, BoxConstraints co
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "${product.price}",
+                    formattedPrice,
                     style: TextStyle(
                       color: const Color(0xFFF8F8F8),
                       fontSize: priceFontSize,
@@ -626,14 +707,19 @@ Widget _buildForYouCard(BuildContext context, Product product, BoxConstraints co
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(
-                        Icons.star,
-                        color: const Color(0xFFFF8225),
-                        size: isSmallScreen ? 14 : 16,
+                      RatingBarIndicator(
+                        rating: product.rating,
+                        itemBuilder: (context, index) => Icon(
+                          Icons.star,
+                          color: const Color(0xFFFF8225),
+                        ),
+                        itemCount: 5,
+                        itemSize: isSmallScreen ? 14 : 16,
+                        unratedColor: Colors.grey[700],
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        "${product.rating}",
+                        product.rating.toStringAsFixed(1),
                         style: TextStyle(
                           color: Colors.grey[400],
                           fontSize: ratingFontSize,

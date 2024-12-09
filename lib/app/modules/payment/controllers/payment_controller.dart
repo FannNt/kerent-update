@@ -27,6 +27,33 @@ class PaymentController extends GetxController {
     '1 Month'
   ];
 
+  final userName = ''.obs;
+  final userClass = ''.obs;
+  final amount = 0.0.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final userData = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        
+        userName.value = userData['username'] ?? '';
+        userClass.value = userData['classOrPosition'] ?? '';
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+    }
+  }
+
   // Calculate return date based on duration
   DateTime calculateReturnDate(String duration) {
     final now = DateTime.now();
@@ -72,10 +99,6 @@ class PaymentController extends GetxController {
   }
 
   Future<void> createRental(Product product) async {
-    if (!formKey.currentState!.validate()) {
-      return;
-    }
-
     try {
       isLoading.value = true;
       
@@ -88,55 +111,61 @@ class PaymentController extends GetxController {
       final returnDate = calculateReturnDate(selectedDuration.value);
       final amount = calculateAmount(product, selectedDuration.value);
 
-      // Create Payment
-      final payment = Payment(
-        id: '',
-        productId: product.id,
-        productName: product.name,
-        amount: amount,
-        userId: user.uid,
-        userName: nameController.text,
-        userClass: classController.text,
-        duration: selectedDuration.value,
-        rentDate: rentDate,
-        returnDate: returnDate,
-        status: 'pending',
-        createdAt: DateTime.now(),
-        sellerId: product.seller,
-      );
+      // Create Payment document data
+      final paymentData = {
+        'productId': product.id,
+        'productName': product.name,
+        'amount': amount,
+        'userId': user.uid,
+        'userName': userName.value,
+        'userClass': userClass.value,
+        'duration': selectedDuration.value,
+        'rentDate': rentDate,
+        'returnDate': returnDate,
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+        'sellerId': product.sellerId,
+      };
 
-      await _paymentService.createPayment(payment);
+      // Log the payment data for debugging
+      print('Creating payment with data: $paymentData');
 
-      // Create RentRequest
-      final rentRequest = RentRequest(
-        id:'',
-        product: product,
-        customerName: nameController.text,
-        rentalDuration: selectedDuration.value,
-        customerClass: classController.text,
-        totalPrice: amount.toInt(),
-        status: 'Pending',
-        customerId: user.uid,
-        productOwnerId: product.sellerId,
-      );
+      // Create payment document
+      final paymentRef = await _firestore.collection('payments').add(paymentData);
+      print('Payment created with ID: ${paymentRef.id}');
 
-      // Add to Firestore
-      await _firestore.collection('rentRequests').add({
+      // Create RentRequest document data
+      final rentRequestData = {
         'product': {
           ...product.toFirestore(),
+          'id': product.id,
           'seller': product.seller,
         },
-        'customerName': rentRequest.customerName,
-        'rentalDuration': rentRequest.rentalDuration,
-        'customerClass': rentRequest.customerClass,
-        'totalPrice': rentRequest.totalPrice,
-        'status': rentRequest.status,
-        'customerId': rentRequest.customerId,
-        'productOwnerId': rentRequest.productOwnerId,
+        'productId': product.id,
+        'customerName': userName.value,
+        'rentalDuration': selectedDuration.value,
+        'customerClass': userClass.value,
+        'totalPrice': amount.toInt(),
+        'status': 'Pending',
+        'customerId': user.uid,
+        'productOwnerId': product.sellerId,
         'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      // Log the rent request data
+      print('Creating RentRequest with data: $rentRequestData');
+
+      // Create rent request document
+      await _firestore.collection('rentRequests').add(rentRequestData);
+
+      // Update product availability
+      await _firestore.collection('products').doc(product.id).update({
+        'isAvailable': false,
+        'currentRenter': user.uid,
+        'lastRentDate': FieldValue.serverTimestamp(),
       });
 
-      _resetForm(); // Reset the form
+      _resetForm();
 
       Get.snackbar(
         'Success',
@@ -147,6 +176,7 @@ class PaymentController extends GetxController {
       
       Get.offAllNamed('/main-menu'); 
     } catch (e) {
+      print('Error creating rental: $e'); // Detailed error logging
       Get.snackbar(
         'Error',
         'Failed to create rental request: $e',

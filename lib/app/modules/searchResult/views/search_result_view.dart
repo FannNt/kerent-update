@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:kerent/app/data/models/product.dart';
 import 'package:kerent/app/modules/CheckOut/views/check_out_view.dart';
 
@@ -223,11 +225,11 @@ Widget _buildSearchResults() {
 }
 
 Widget _buildProductCard(BuildContext context, Product product, BoxConstraints constraints) {
-  // Hitung ukuran berdasarkan constraints
+  final formattedPrice = NumberFormat.currency(locale: 'id', symbol: 'Rp. ', decimalDigits: 0).format(product.price);
+
   final isSmallScreen = constraints.maxWidth < 400;
   final isMediumScreen = constraints.maxWidth < 600;
   
-  // Responsive text sizes
   final titleFontSize = isSmallScreen ? 12.0 : (isMediumScreen ? 14.0 : 16.0);
   final priceFontSize = isSmallScreen ? 13.0 : (isMediumScreen ? 15.0 : 17.0);
   final ratingFontSize = isSmallScreen ? 11.0 : (isMediumScreen ? 12.0 : 13.0);
@@ -273,25 +275,25 @@ Widget _buildProductCard(BuildContext context, Product product, BoxConstraints c
                     },
                   ),
                 ),
-                // Gradient overlay
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    height: 50,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.5),
-                        ],
+                if (!product.isAvailable)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Unavailable',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -318,7 +320,7 @@ Widget _buildProductCard(BuildContext context, Product product, BoxConstraints c
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    product.price.toString(),
+                    formattedPrice,
                     style: TextStyle(
                       color: const Color(0xFFFF8225),
                       fontSize: priceFontSize,
@@ -328,14 +330,19 @@ Widget _buildProductCard(BuildContext context, Product product, BoxConstraints c
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(
-                        Icons.star,
-                        color: const Color(0xFFFF8225),
-                        size: isSmallScreen ? 14 : 16,
+                      RatingBarIndicator(
+                        rating: product.rating,
+                        itemBuilder: (context, index) => Icon(
+                          Icons.star,
+                          color: const Color(0xFFFF8225),
+                        ),
+                        itemCount: 5,
+                        itemSize: isSmallScreen ? 14 : 16,
+                        unratedColor: Colors.grey[700],
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        product.rating.toString(),
+                        product.rating.toStringAsFixed(1),
                         style: TextStyle(
                           color: Colors.grey[400],
                           fontSize: ratingFontSize,

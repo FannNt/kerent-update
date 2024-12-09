@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:kerent/app/modules/chat/views/chat_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
-import '../../../data/models/product.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import '../../../data/models/rentRequest.dart';
+import '../../chat/controllers/chat_controller.dart';
 
 class InboxPage extends StatefulWidget {
   const InboxPage({super.key});
@@ -19,6 +20,8 @@ class _InboxPageState extends State<InboxPage> with SingleTickerProviderStateMix
   TabController? _tabController;
   Stream<QuerySnapshot>? _sellerRequestsStream;
   Stream<QuerySnapshot>? _customerRequestsStream;
+  final chatController = Get.put(ChatController());
+
 
   @override
   void initState() {
@@ -54,6 +57,7 @@ class _InboxPageState extends State<InboxPage> with SingleTickerProviderStateMix
 
   Future<void> _updateRequestStatus(RentRequest request, String newStatus) async {
     try {
+
       // Update request status with timestamp
       await _firestore.collection('rentRequests').doc(request.id).update({
         'status': newStatus,
@@ -93,15 +97,37 @@ class _InboxPageState extends State<InboxPage> with SingleTickerProviderStateMix
     final newStatus = isConfirmed ? 'Confirmed' : 'Rejected';
     
     try {
-      // Update the request status
-      await _updateRequestStatus(request, newStatus);
 
       if (isConfirmed) {
-        // Navigate to chat for confirmed requests
-        _navigateToMessage(
-          request,
-          "Hi, ${request.customerName}, pesananmu yang ini diterima nih. Mau ketemuan kapan dan dimana",
+        final chatId = await chatController.createOrGetChat(
+          request.customerId,
+          request.customerName,
         );
+
+        if (chatId != null) {
+          // Send initial message
+          await _sendMessage(
+            chatId,
+            "Hi, ${request.customerName}, pesananmu yang ini diterima nih. Mau ketemuan kapan dan dimana",
+            request.customerId,
+          );
+          // Update the request status
+          await _updateRequestStatus(request, newStatus);
+
+          // Update product stock and availability
+          int newStock = request.product.stock - 1;
+          await _firestore.collection('products').doc(request.product.id).update({
+            'stock': newStock,
+          });
+          await _updateProductAvailability(request.product.id, newStock);
+
+          // Navigate to chat
+          Get.off(() => MessagePage(
+            recipientId: request.customerId,
+            recipientName: request.customerName,
+            chatId: chatId,
+          ));
+        }
       } else {
         // Show rejection dialog
         _showRejectionDialog(request);
@@ -120,6 +146,23 @@ class _InboxPageState extends State<InboxPage> with SingleTickerProviderStateMix
   // Add this method to handle request completion
   Future<void> _markAsReturned(RentRequest request) async {
     try {
+      final chatId = await chatController.createOrGetChat(
+        request.customerId,
+        request.customerName,
+      );
+      if (chatId != null) {
+      Get.to(() => MessagePage(
+        recipientId: request.customerId,
+        recipientName: request.customerName,
+        chatId: chatId,
+      ));
+        await _sendMessage(
+          chatId,
+          "Hi, ${request.customerName}, Terima kasih sudah rental produk ${request.product.name} nya. Kami harap anda puas dengan produk yang kami sediakan",
+          request.customerId,
+        );
+      }
+
       // Update request status
       await _firestore.collection('rentRequests').doc(request.id).update({
         'status': 'Returned',
@@ -131,6 +174,7 @@ class _InboxPageState extends State<InboxPage> with SingleTickerProviderStateMix
         'isAvailable': true,
         'currentRenterId': null,
         'rentedAt': null,
+        'stock': FieldValue.increment(1),
       });
 
       Get.snackbar(
@@ -150,12 +194,7 @@ class _InboxPageState extends State<InboxPage> with SingleTickerProviderStateMix
     }
   }
 
-  void _navigateToMessage(RentRequest request, String message) {
-    Get.to(() => MessagePage(
-      recipientName: request.customerName, recipientId: '', chatId: '',
-    ));
-  }
-
+    
   void _showRejectionDialog(RentRequest request) {
     final controller = TextEditingController();
     showDialog(
@@ -183,12 +222,57 @@ class _InboxPageState extends State<InboxPage> with SingleTickerProviderStateMix
         ),
         actions: [
           TextButton(
-            onPressed: () {
+            onPressed: () async {
+              if (controller.text.isEmpty) {
+                Get.snackbar(
+                  'Error',
+                  'Please enter a reason for rejection',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+                return;
+              }
+
               Navigator.of(context).pop();
-              _navigateToMessage(
-                request,
-                "Hi, ${request.customerName}, maaf pesananmu kami batalkan karena ${controller.text}.",
-              );
+              
+              try {
+                final chatId = await chatController.createOrGetChat(
+                  request.customerId,
+                  request.customerName,
+                );
+
+                if (chatId != null) {
+                  // Navigate to chat
+                  Get.off(() => MessagePage(
+                    recipientId: request.customerId,
+                    recipientName: request.customerName,
+                    chatId: chatId,
+                  ));
+
+                  // Send rejection message
+                  await _sendMessage(
+                    chatId,
+                    "Hi, ${request.customerName}, maaf pesananmu untuk produk ${request.product.name} kami batalkan karena ${controller.text}.",
+                    request.customerId,
+                  );
+
+
+                  // Update request status to Rejected
+                  await _firestore.collection('rentRequests').doc(request.id).update({
+                    'status': 'Rejected',
+                    'rejectedAt': FieldValue.serverTimestamp(),
+                  });
+
+                }
+              } catch (e) {
+                print('Error sending rejection message: $e');
+                Get.snackbar(
+                  'Error',
+                  'Failed to send rejection message',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+              }
             },
             style: TextButton.styleFrom(
               foregroundColor: Colors.orange,
@@ -198,6 +282,29 @@ class _InboxPageState extends State<InboxPage> with SingleTickerProviderStateMix
         ],
       ),
     );
+  }
+
+  Future<void> _sendMessage(String chatId, String message, String receiverId) async {
+    await _firestore.collection('chats').doc(chatId).collection('messages').add({
+      'senderId': FirebaseAuth.instance.currentUser!.uid,
+      'receiverId': receiverId,
+      'message': message,
+      'timestamp': FieldValue.serverTimestamp(),
+      'isRead': false,
+    });
+
+    // Update lastMessage and lastMessageTime in the chat document
+    await _firestore.collection('chats').doc(chatId).update({
+      'lastMessage': message,
+      'lastMessageTime': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> _updateProductAvailability(String productId, int stock) async {
+    bool isAvailable = stock > 0;
+    await _firestore.collection('products').doc(productId).update({
+      'isAvailable': isAvailable,
+    });
   }
 
   @override
@@ -286,6 +393,8 @@ class _InboxPageState extends State<InboxPage> with SingleTickerProviderStateMix
   }
 
   Widget _buildRequestCard(RentRequest request, bool isCustomer) {
+    final formattedPrice = NumberFormat.currency(locale: 'id', symbol: 'Rp. ', decimalDigits: 0).format(request.totalPrice);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -314,7 +423,7 @@ class _InboxPageState extends State<InboxPage> with SingleTickerProviderStateMix
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                     image: DecorationImage(
-                      image: NetworkImage(request.product.images ?? ''),
+                      image: NetworkImage(request.product.images),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -339,7 +448,7 @@ class _InboxPageState extends State<InboxPage> with SingleTickerProviderStateMix
                         isCustomer ? 'Owner' : 'Renter', 
                         isCustomer ? request.product.seller : request.customerName
                       ),
-                      _buildInfoRow('Total Price', 'Rp ${request.totalPrice}'),
+                      _buildInfoRow('Total Price', formattedPrice),
                       const SizedBox(height: 8),
                       _buildStatusBadge(request.status),
                     ],
@@ -373,6 +482,45 @@ class _InboxPageState extends State<InboxPage> with SingleTickerProviderStateMix
                         () => _markAsReturned(request),
                       ),
                     ],
+                  ],
+                ),
+              ),
+            ],
+            if (isCustomer && request.status == 'Returned' && !request.isRated) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    _buildActionButton(
+                      'Rate Product',
+                      const Color(0xFFFF8225),
+                      () => _showRatingDialog(request),
+                    ),
+                  ],
+                ),
+              ),
+            ]else if (isCustomer && request.isRated) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Your Rating: ',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    Row(
+                      children: List.generate(
+                        5,
+                        (index) => Icon(
+                          Icons.star,
+                          size: 16,
+                          color: index < (request.rating ?? 0).floor()
+                              ? const Color(0xFFFF8225)
+                              : Colors.grey,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -450,4 +598,126 @@ class _InboxPageState extends State<InboxPage> with SingleTickerProviderStateMix
       child: Text(text),
     );
   }
+  void _showRatingDialog(RentRequest request) {
+  double rating = 0;
+  final reviewController = TextEditingController();
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color(0xFF262626),
+      title: Text(
+        'Rate ${request.product.name}',
+        style: const TextStyle(color: Colors.white),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          RatingBar.builder(
+            initialRating: 0,
+            minRating: 1,
+            direction: Axis.horizontal,
+            allowHalfRating: true,
+            itemCount: 5,
+            itemSize: 40,
+            unratedColor: Colors.grey,
+            itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
+            itemBuilder: (context, _) => const Icon(
+              Icons.star,
+              color: Color(0xFFFF8225),
+            ),
+            onRatingUpdate: (value) {
+              rating = value;
+            },
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: reviewController,
+            style: const TextStyle(color: Colors.white),
+            maxLines: 3,
+            decoration: const InputDecoration(
+              hintText: 'Write your review (optional)',
+              hintStyle: TextStyle(color: Colors.grey),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFFFF8225)),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
+        TextButton(
+          onPressed: () async {
+            if (rating == 0) {
+              Get.snackbar(
+                'Error',
+                'Please select a rating',
+                backgroundColor: Colors.red,
+                colorText: Colors.white,
+              );
+              return;
+            }
+            await _submitRating(request, rating, reviewController.text);
+            Navigator.pop(context);
+          },
+          child: const Text(
+            'Submit',
+            style: TextStyle(color: Color(0xFFFF8225)),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+Future<void> _submitRating(RentRequest request, double rating, String review) async {
+  try {
+    // Update the request with rating
+    await _firestore.collection('rentRequests').doc(request.id).update({
+      'rating': rating,
+      'review': review,
+      'isRated': true,
+      'ratedAt': FieldValue.serverTimestamp(),
+    });
+
+    // Update product's average rating
+    final productRef = _firestore.collection('products').doc(request.product.id);
+    final productDoc = await productRef.get();
+    final currentRating = productDoc.data()?['rating'] ?? 0.0;
+    final totalReviews = productDoc.data()?['totalReviews'] ?? 0;
+    
+    final newTotalReviews = totalReviews + 1;
+    final newRating = ((currentRating * totalReviews) + rating) / newTotalReviews;
+
+    await productRef.update({
+      'rating': newRating,
+      'totalReviews': newTotalReviews,
+    });
+
+    Get.snackbar(
+      'Success',
+      'Thank you for your rating!',
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+    );
+  } catch (e) {
+    print('Error submitting rating: $e');
+    Get.snackbar(
+      'Error',
+      'Failed to submit rating',
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+    );
+  }
+}
 }

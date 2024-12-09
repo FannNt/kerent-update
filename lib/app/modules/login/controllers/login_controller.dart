@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../../../controllers/auth_controller.dart';
 import '../../../services/auth_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -44,6 +45,11 @@ class LoginController extends GetxController {
       );
       await _authService.saveUserData(userCredential.user!);
       await updateOnlineStatus(true);
+      
+      // Load user data after successful login
+      await Get.find<AuthController>().loadUserData();
+      
+      Get.offAllNamed('/main-menu');
     } on FirebaseAuthException catch (e) {
       Get.snackbar(
         'Error',
@@ -53,7 +59,14 @@ class LoginController extends GetxController {
   }
 
   Future<void> signInWithGoogle() async {
-    await _authService.signInWithGoogle();
+    try {
+      await _authService.signInWithGoogle();
+      // Load user data after successful Google sign-in
+      await Get.find<AuthController>().loadUserData();
+      Get.offAllNamed('/main-menu');
+    } catch (e) {
+      print('Error signing in with Google: $e');
+    }
   }
 
   Future<void> resetPassword() async {

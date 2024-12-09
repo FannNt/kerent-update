@@ -104,7 +104,7 @@ class _CustomScaffoldState extends State<CustomScaffold> {
             Icons.chat_bubble,
             'Chat',
             1,
-            () => _navigateTo(context, ChatListPage()),
+            () => Get.offAll(() => ChatListPage()),
           ),
         ],
       ),
