@@ -615,25 +615,22 @@ Widget _buildContactField({
   Widget _buildTabBarView() {
     return TabBarView(
       children: [
-        GetX<ProfileController>(
-          builder: (controller) {
-            if (controller.isLoading.value) {
-              return const Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFFFF8225),
-                ),
-              );
-            }
-            return _buildBarangDisewakanGrid();
-          },
-        ),
+        _buildBarangDisewakanGrid(),
       ],
     );
   }
 
   Widget _buildBarangDisewakanGrid() {
-    return GetX<ProfileController>(
+    return GetBuilder<ProfileController>(
       builder: (controller) {
+        if (controller.isLoading.value) {
+          return const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFFFF8225),
+            ),
+          );
+        }
+
         if (controller.userProducts.isEmpty) {
           return const Center(
             child: Text(

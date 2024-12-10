@@ -5,6 +5,9 @@ import '../../chat/views/chat_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../../profile/controllers/profile_controller.dart';
+import '../../profile/views/profile_view.dart';
+
 class CheckoutController extends GetxController {
   var currentIndex = 0.obs;
   late Rx<Product> product;
@@ -75,6 +78,25 @@ class CheckoutController extends GetxController {
   void onAddPressed() {
     // Implement add item logic here
     Get.snackbar('Add Item', 'Adding new item...');
+  }
+
+  void navigateToSellerProfile(String sellerId) {
+    print('Navigating to seller profile with ID: $sellerId');
+    
+    // First, delete existing controller
+    Get.delete<ProfileController>(force: true);
+    
+    // Create new controller
+    final profileController = Get.put(ProfileController());
+    
+    // Navigate with arguments
+    Get.to(
+      () => const PublicProfilePage(),
+      arguments: {
+        'userId': sellerId,
+      },
+      preventDuplicates: false,
+    );
   }
 }
 

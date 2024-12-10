@@ -36,38 +36,32 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         body: SafeArea(
           child: Stack(
             children: [
-              GetX<ProfileController>(
-                builder: (controller) => NestedScrollView(
-                  headerSliverBuilder: (context, innerBoxIsScrolled) {
-                    return [
-                      SliverToBoxAdapter(
-                        child: Column(
-                          children: [
-                            _buildHeader(context),
-                            _buildProfileInfo(controller),
-                          ],
-                        ),
-                      ),
-                      SliverPersistentHeader(
-                        pinned: true,
-                        delegate: _SliverAppBarDelegate(
-                          _buildTabBar(),
-                        ),
-                      ),
-                    ];
-                  },
-                  body: TabBarView(
-                    children: [
-                      _buildBarangDisewakan(controller),
-                      const Center(
-                        child: Text(
-                          'Review Tab',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
+              Column(
+                children: [
+                  _buildHeader(context),
+                  GetBuilder<ProfileController>(
+                    builder: (controller) => _buildProfileInfo(controller),
                   ),
-                ),
+                  _buildTabBar(),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        SingleChildScrollView(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: _buildUserProducts(),
+                          ),
+                        ),
+                        const Center(
+                          child: Text(
+                            'Review Tab',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               if (isPreview)
                 Positioned(
@@ -132,13 +126,16 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
   }
 
   Widget _buildProfileInfo(ProfileController controller) {
+    final args = Get.arguments as Map<String, dynamic>?;
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Profile Image
               Container(
                 width: 100,
                 height: 100,
@@ -160,86 +157,77 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                               : '',
                           style: const TextStyle(
                             fontSize: 40,
-                            color: Colors.white,
                             fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
                       )
                     : null,
               ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: () => Get.to(() => const FollowersPage()),
-                    child: Text(
-                      '${controller.followersCount} Pengikut',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  GestureDetector(
-                    onTap: () => Get.to(() => const FollowingPage()),
-                    child: Text(
-                      '${controller.followingCount} Mengikuti',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Obx(() {
-                final args = Get.arguments as Map<String, dynamic>?;
-                final isCurrentUser = args?['isCurrentUser'] ?? false;
-                final isPreview = args?['isPreview'] ?? false;
-
-                if (isPreview) {
-                  return const SizedBox.shrink();
-                }
-
-                return Row(
+              const SizedBox(width: 16),
+              // Profile Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (!isCurrentUser) ...[
-                      _buildActionButtons(controller),
-                    ],
+                    Text(
+                      controller.username.value,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    if (controller.classOrPosition.value.isNotEmpty)
+                      Text(
+                        controller.classOrPosition.value,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _buildFollowButton(controller),
+                        const SizedBox(width: 8),
+                        _buildChatButton(controller, args),
+                      ],
+                    ),
                   ],
-                );
-              }),
+                ),
+              ),
             ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  controller.username.value,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+          const SizedBox(height: 16),
+          // Followers and Following count
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => Get.to(() => const FollowersPage()),
+                child: Text(
+                  '${controller.followersCount} Followers',
+                  style: const TextStyle(color: Colors.white),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  controller.classOrPosition.value,
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                  ),
+              ),
+              const SizedBox(width: 16),
+              GestureDetector(
+                onTap: () => Get.to(() => const FollowingPage()),
+                child: Text(
+                  '${controller.followingCount} Following',
+                  style: const TextStyle(color: Colors.white),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  controller.description.value,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
+          if (controller.description.value.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Text(
+                controller.description.value,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
         ],
       ),
     );
@@ -266,42 +254,41 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     );
   }
 
-  Widget _buildBarangDisewakan(ProfileController controller) {
-    if (controller.isLoading.value) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFFF8225)),
-      );
-    }
-    
-    if (controller.error.isNotEmpty) {
-      return Center(
-        child: Text(
-          controller.error.value,
-          style: const TextStyle(color: Colors.white),
-        ),
-      );
-    }
+  Widget _buildUserProducts() {
+    return GetBuilder<ProfileController>(
+      builder: (controller) {
+        if (controller.isLoading.value) {
+          return const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFFFF8225),
+            ),
+          );
+        }
 
-    if (controller.rentedItems.isEmpty) {
-      return const Center(
-        child: Text(
-          'No items found',
-          style: TextStyle(color: Colors.white),
-        ),
-      );
-    }
+        if (controller.userProducts.isEmpty) {
+          return const Center(
+            child: Text(
+              'No products listed yet',
+              style: TextStyle(color: Colors.white70),
+            ),
+          );
+        }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(16.0),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.8,
-        crossAxisSpacing: 16.0,
-        mainAxisSpacing: 16.0,
-      ),
-      itemCount: controller.userProducts.length,
-      itemBuilder: (context, index) {
-        return _buildProductCard(controller.userProducts[index]);
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.75,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+          ),
+          itemCount: controller.userProducts.length,
+          itemBuilder: (context, index) {
+            final product = controller.userProducts[index];
+            return _buildProductCard(product);
+          },
+        );
       },
     );
   }
@@ -373,7 +360,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     );
   }
 
-  Widget _buildActionButtons(ProfileController controller) {
+  Widget _buildFollowButton(ProfileController controller) {
     final args = Get.arguments as Map<String, dynamic>?;
     final isCurrentUser = args?['isCurrentUser'] ?? false;
     final isPreview = args?['isPreview'] ?? false;
@@ -386,160 +373,86 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       return const SizedBox.shrink();
     }
 
-    return Row(
-      children: [
-        GetBuilder<ProfileController>(
-          builder: (controller) => ElevatedButton(
-            onPressed: () => controller.toggleFollow(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: controller.isFollowing.value
-                  ? Colors.grey[800]
-                  : const Color(0xFF25C8FF),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              minimumSize: const Size(0, 40),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              controller.isFollowing.value ? 'Mengikuti' : 'Ikuti',
-              style: const TextStyle(
-                fontFamily: 'Plus Jakarta Sans',
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              ),
-            ),
+    return GetBuilder<ProfileController>(
+      builder: (controller) => ElevatedButton(
+        onPressed: () => controller.toggleFollow(),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: controller.isFollowing.value
+              ? Colors.grey[800]
+              : const Color(0xFF25C8FF),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          minimumSize: const Size(0, 40),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
           ),
         ),
-        const SizedBox(width: 8),
-        ElevatedButton(
-          onPressed: () {
-            final chatController = Get.put(ChatController());
-            final targetUserId = args?['userId'] ?? authController.uid.value;
-            
-            chatController.createOrGetChat(
-              targetUserId,
-              controller.username.value.isNotEmpty 
-                  ? controller.username.value 
-                  : 'Unknown Seller',
-            ).then((chatId) {
-              if (chatId != null) {
-                Get.to(() => MessagePage(
-                  recipientId: targetUserId,
-                  recipientName: controller.username.value.isNotEmpty 
-                      ? controller.username.value 
-                      : 'Unknown Seller',
-                  chatId: chatId,
-                ));
-              }
-            });
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF222222),
-            foregroundColor: Colors.white,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            minimumSize: const Size(0, 40),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: const Text(
-            'Chat',
-            style: TextStyle(
-              fontFamily: 'Plus Jakarta Sans',
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-            ),
+        child: Text(
+          controller.isFollowing.value ? 'Mengikuti' : 'Ikuti',
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
           ),
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildUserProducts() {
-    return Obx(() {
-      if (profileController.userProducts.isEmpty) {
-        return const Center(
-          child: Text(
-            'No products listed yet',
-            style: TextStyle(color: Colors.white70),
-          ),
-        );
-      }
+  Widget _buildChatButton(ProfileController controller, Map<String, dynamic>? args) {
+    final isCurrentUser = args?['isCurrentUser'] ?? false;
+    final isPreview = args?['isPreview'] ?? false;
 
-      return GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.75,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
+    if (isPreview) {
+      return const SizedBox.shrink();
+    }
+
+    if (isCurrentUser) {
+      return const SizedBox.shrink();
+    }
+
+    return ElevatedButton(
+      onPressed: () {
+        final chatController = Get.put(ChatController());
+        final targetUserId = args?['userId'] ?? authController.uid.value;
+        
+        chatController.createOrGetChat(
+          targetUserId,
+          controller.username.value.isNotEmpty 
+              ? controller.username.value 
+              : 'Unknown Seller',
+        ).then((chatId) {
+          if (chatId != null) {
+            Get.to(() => MessagePage(
+              recipientId: targetUserId,
+              recipientName: controller.username.value.isNotEmpty 
+                  ? controller.username.value 
+                  : 'Unknown Seller',
+              chatId: chatId,
+            ));
+          }
+        });
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF222222),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        minimumSize: const Size(0, 40),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
         ),
-        itemCount: profileController.userProducts.length,
-        itemBuilder: (context, index) {
-          final product = profileController.userProducts[index];
-          return Card(
-            color: const Color(0xFF31363F),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: InkWell(
-              onTap: () => Get.to(() => CheckoutPage(produk: product)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                      child: Image.network(
-                        product.images,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          product.name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          NumberFormat.currency(
-                            locale: 'id',
-                            symbol: 'Rp ',
-                            decimalDigits: 0,
-                          ).format(product.price),
-                          style: const TextStyle(
-                            color: Color(0xFFFF8225),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    });
+      ),
+      child: const Text(
+        'Chat',
+        style: TextStyle(
+          fontFamily: 'Plus Jakarta Sans',
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
+      ),
+    );
   }
 
   @override

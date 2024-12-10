@@ -7,6 +7,7 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:intl/intl.dart';
 
 import '../../../controllers/auth_controller.dart';
+import '../../../services/auth_service.dart';
 import '../../payment/views/payment_view.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../../profile/views/profile_view.dart';
@@ -15,8 +16,6 @@ import 'image_carousel.dart';
 
 class CheckoutPage extends StatefulWidget {
   final Product produk;
-  final profileController = Get.put(ProfileController());
-  final controller = Get.put(CheckoutController());
   CheckoutPage({super.key, required this.produk}); 
 
   @override
@@ -24,13 +23,15 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
+  final ProfileController profileController = Get.put(ProfileController());
+  final CheckoutController controller = Get.put(CheckoutController());
   bool _isExpanded = false;
   ElevatedButton? chatSellerButton;
   final AuthController _authController = Get.find<AuthController>();
-  final controller = Get.find<CheckoutController>();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final RxString sellerName = ''.obs;
   final RxBool isLoading = true.obs;
+  final RxString lastActiveText = ''.obs;
 
   @override
   void initState() {
@@ -59,7 +60,29 @@ class _CheckoutPageState extends State<CheckoutPage> {
           .doc(widget.produk.sellerId)
           .get();
       
-      sellerName.value = sellerDoc.data()?['username'] ?? 'Unknown Seller';
+      final userData = sellerDoc.data();
+      sellerName.value = userData?['username'] ?? 'Unknown Seller';
+      
+      // Get lastLogin timestamp
+      final lastLogin = userData?['lastLogin'] as Timestamp?;
+      if (lastLogin != null) {
+        final now = DateTime.now();
+        final difference = now.difference(lastLogin.toDate());
+
+        if (difference.inSeconds < 60) {
+          lastActiveText.value = 'Aktif baru saja';
+        } else if (difference.inMinutes < 60) {
+          lastActiveText.value = 'Aktif ${difference.inMinutes} menit yang lalu';
+        } else if (difference.inHours < 24) {
+          lastActiveText.value = 'Aktif ${difference.inHours} jam yang lalu';
+        } else if (difference.inDays < 7) {
+          lastActiveText.value = 'Aktif ${difference.inDays} hari yang lalu';
+        } else {
+          lastActiveText.value = 'Offline';
+        }
+      } else {
+        lastActiveText.value = 'Status tidak tersedia';
+      }
     } catch (e) {
       print('Error loading seller info: $e');
     } finally {
@@ -212,27 +235,23 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         Row(
                           children: [
                             InkWell(
-                              onTap: () => Get.to(
-                                () => const PublicProfilePage(), 
-                                arguments: {
-                                  'userId': widget.produk.sellerId,
-                                  'isCurrentUser': true,
-                                }
-                              ),
+                              onTap: () => {
+                                // controller.navigateToSellerProfile(widget.produk.sellerId)
+                                },
                               child: Container(
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFFF8225),
                                   shape: BoxShape.circle,
-                                  image: widget.produk.seller.isNotEmpty && widget.profileController.profileImage.value.isNotEmpty
+                                  image: widget.produk.seller.isNotEmpty && profileController.profileImage.value.isNotEmpty
                                       ? DecorationImage(
-                                          image: NetworkImage(widget.profileController.profileImage.value),
+                                          image: NetworkImage(profileController.profileImage.value),
                                           fit: BoxFit.cover,
                                         )
                                       : null,
                                 ),
-                                child: widget.produk.seller.isEmpty || widget.profileController.profileImage.value.isNotEmpty
+                                child: widget.produk.seller.isEmpty || profileController.profileImage.value.isNotEmpty
                                     ? null
                                     : Center(
                                         child: Text(
@@ -251,13 +270,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: InkWell( 
-                                onTap: () => Get.to(
-                                  () => const PublicProfilePage(), 
-                                  arguments: {
-                                    'userId': widget.produk.sellerId,
-                                    'isCurrentUser': true,
-                                  }
-                                ),
+                                onTap: () {
+                                  // controller.navigateToSellerProfile(widget.produk.sellerId);
+                                },
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -395,8 +410,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         ),
       ),
       onPressed: () {
-        // Navigate to edit product page
-        // Implement your edit product navigation here
+
       },
       child: const Text(
         'Edit Product',

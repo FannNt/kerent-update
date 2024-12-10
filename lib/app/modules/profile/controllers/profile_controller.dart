@@ -25,11 +25,38 @@ class ProfileController extends GetxController {
   final RxString error = ''.obs;
   final RxList<Product> userProducts = <Product>[].obs;
 
+  bool get isCurrentUser {
+    return targetUserId == _authService.userUid;
+  }
+
   @override
   void onInit() {
     super.onInit();
-    loadUserData();
-    loadUserProducts();
+    
+    // Get arguments from navigation
+    final args = Get.arguments as Map<String, dynamic>?;
+    print('Arguments received in onInit: $args');
+    
+    if (args != null && args['userId'] != null) {
+      targetUserId = args['userId'];
+      print('Setting targetUserId to seller: $targetUserId');
+    } else {
+      targetUserId = _authService.userUid;
+      print('No userId in arguments, using current user: $targetUserId');
+    }
+    
+    // Clear previous data
+    username.value = '';
+    classOrPosition.value = '';
+    description.value = '';
+    telephone.value = '';
+    profileImage.value = '';
+    userProducts.clear();
+    
+    // Initialize with delay to ensure arguments are processed
+    Future.delayed(Duration.zero, () {
+      initializeData();
+    });
   }
 
   Future<void> initializeData() async {
@@ -56,21 +83,23 @@ class ProfileController extends GetxController {
 
   Future<void> loadUserData() async {
     try {
-      String? uid = targetUserId ?? _authService.userUid;
-      if (uid != null) {
-        DocumentSnapshot userDoc = await _firestore.collection('users').doc(uid).get();
-        
+      isLoading.value = true;
+      if (targetUserId != null) {
+        print('Loading data for user: $targetUserId'); // Debug print
+        final userDoc = await _firestore.collection('users').doc(targetUserId).get();
         if (userDoc.exists) {
-          Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+          final userData = userDoc.data() as Map<String, dynamic>;
           username.value = userData['username'] ?? '';
           classOrPosition.value = userData['classOrPosition'] ?? '';
           description.value = userData['description'] ?? '';
-          telephone.value = userData['phoneNumber']?.toString() ?? '';
-          profileImage.value = userData['profileImageUrl'] ?? '';
+          telephone.value = userData['telephone'] ?? '';
+          profileImage.value = userData['profileImage'] ?? '';
         }
       }
     } catch (e) {
       print('Error loading user data: $e');
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -270,6 +299,7 @@ class ProfileController extends GetxController {
 
   Future<void> loadUserProducts() async {
     try {
+      isLoading.value = true;
       String? uid = targetUserId ?? _authService.userUid;
       if (uid != null) {
         final QuerySnapshot productsSnapshot = await _firestore
@@ -283,10 +313,12 @@ class ProfileController extends GetxController {
         }).toList();
         
         userProducts.assignAll(products);
-        rentedItems.assignAll(products);
+        updateUI();
       }
     } catch (e) {
       print('Error loading user products: $e');
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -309,6 +341,55 @@ class ProfileController extends GetxController {
     } catch (e) {
       print('Error deleting product: $e');
       throw e;
+    }
+  }
+
+  void updateUI() {
+    update();
+  }
+
+  Future<void> loadFollowersAndFollowing(String uid) async {
+    try {
+      // Load followers
+      QuerySnapshot followersSnapshot = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('followers')
+          .get();
+      
+      followers.value = followersSnapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
+      followersCount.value = followers.length;
+
+      // Load following
+      QuerySnapshot followingSnapshot = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('following')
+          .get();
+      
+      following.value = followingSnapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
+      followingCount.value = following.length;
+
+      // Check if current user is following this profile
+      if (!isCurrentUser) {
+        String? currentUid = _authService.userUid;
+        if (currentUid != null) {
+          DocumentSnapshot followDoc = await _firestore
+              .collection('users')
+              .doc(currentUid)
+              .collection('following')
+              .doc(uid)
+              .get();
+          
+          isFollowing.value = followDoc.exists;
+        }
+      }
+    } catch (e) {
+      print('Error loading followers and following: $e');
     }
   }
 }

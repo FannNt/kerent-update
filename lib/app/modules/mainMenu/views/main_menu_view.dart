@@ -478,23 +478,27 @@ Widget _buildCarouselItem(BuildContext context, String title, String subtitle, S
               ),
               const SizedBox(height: 8),
               Text(
-                name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFFF8F8F8),
-                  fontFamily: 'Plus Jakarta Sans',
-                  fontSize: 12
-                ),
-              ),
-              Text(
-                formattedPrice,
-                style: const TextStyle(
-                  fontWeight: FontWeight.normal,
-                  color: Color(0xFFF8F8F8),
-                  fontFamily: 'Plus Jakarta Sans',
-                  fontSize: 10
-                ),
-              ),
+                    name.length > 20 ? '${name.substring(0, 20)}...' : name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFFF8F8F8),
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 12,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    formattedPrice.length > 20 ? '${formattedPrice.substring(0, 20)}...' : formattedPrice,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.normal,
+                      color: Color(0xFFF8F8F8),
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 10,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
               const SizedBox(height: 4),
               RatingBarIndicator(
                 rating: controller.filteredProducts[index].rating,
@@ -676,25 +680,29 @@ Widget _buildForYouCard(BuildContext context, Product product, BoxConstraints co
                 children: [
                   Expanded(
                     child: Text(
-                      product.name,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: titleFontSize,
-                        fontWeight: FontWeight.w600,
-                        height: 1.2,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                      product.name.length > 20 ? '${product.name.substring(0, 20)}...' : product.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFFF8F8F8),
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 12,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    formattedPrice,
-                    style: TextStyle(
-                      color: const Color(0xFFF8F8F8),
-                      fontSize: priceFontSize,
+                    formattedPrice.length > 20 ? '${formattedPrice.substring(0, 20)}...' : formattedPrice,
+                    style: const TextStyle(
                       fontWeight: FontWeight.normal,
+                      color: Color(0xFFF8F8F8),
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 10,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Row(
