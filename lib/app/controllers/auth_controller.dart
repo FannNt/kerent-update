@@ -1,7 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../data/models/user.dart';
 import '../services/auth_service.dart';
@@ -12,6 +15,7 @@ class AuthController extends GetxController {
   final phoneNumberController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
   User? get currentUser => _auth.currentUser;
   final AuthService _authService = Get.find<AuthService>();
 
@@ -43,10 +47,47 @@ class AuthController extends GetxController {
     return null;
   }
 
- Future<void> signInWithGoogle() async {  
-  await _authService.signInWithGoogle();
-  loadUserData();
- }
+ Future<UserCredential?> signInWithGoogle() async {
+    try {
+      // Ensure we're signed out first
+      await _clearAuthData();
+      
+      // Show account picker and get selected account
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) return null;
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in with Firebase
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      if (userCredential.user != null) {
+        await _firestore.collection('users').doc(userCredential.user!.uid).set({
+          'username': userCredential.user!.displayName,
+          'email': userCredential.user!.email,
+          'photoUrl': userCredential.user!.photoURL,
+          'lastLogin': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+
+      return userCredential;
+    } catch (e) {
+      print('Error signing in with Google: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to sign in with Google: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return null;
+    }
+  }
 
   Future<void> signOut()async{
   await _authService.signOut();
@@ -54,10 +95,20 @@ class AuthController extends GetxController {
   }
 
   @override
-  void onInit() {
+  void onInit() async {
     super.onInit();
-    updateUserOnlineStatus(true);
-    loadUserData();
+    // Set persistence to NONE to prevent auto sign-in
+    await _auth.setPersistence(Persistence.NONE);
+    
+    // Check auth state
+    _auth.authStateChanges().listen((User? user) {
+      if (user == null) {
+        // Ensure we're on the login page when there's no user
+        if (Get.currentRoute != '/login') {
+          Get.offAllNamed('/login');
+        }
+      }
+    });
   }
 
   Future<void> loadUserData() async {
@@ -163,6 +214,101 @@ class AuthController extends GetxController {
     image.value = '';
     classOrPosition.value = '';
     description.value = '';
+  }
+
+  Future<void> logout() async {
+    try {
+      // Sign out from Google
+      await _googleSignIn.signOut();
+      
+      // Sign out from Firebase
+      await _auth.signOut();
+      
+      // Clear any stored auth data
+      await _clearAuthData();
+      
+      // Force navigation to login page
+      Get.offAllNamed('/home');
+    } catch (e) {
+      print('Error during logout: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to logout: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Future<void> _clearAuthData() async {
+    try {
+      // Clear any cached user data
+      displayName.value = '';
+      email.value = '';
+      image.value = '';
+      
+      // Clear web storage
+      await _auth.signOut();
+      
+      // Clear any persisted auth state
+      await _auth.setPersistence(Persistence.NONE);
+      
+      // Clear shared preferences if you're using them
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      
+      // Clear Google Sign In
+      await _googleSignIn.disconnect();
+      
+    } catch (e) {
+      print('Error clearing auth data: $e');
+    }
+  }
+
+  Future<void> _loadUserData(User user) async {
+    try {
+      final userData = await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      
+      if (userData.exists) {
+        displayName.value = userData.data()?['username'] ?? '';
+        email.value = userData.data()?['email'] ?? '';
+        image.value = userData.data()?['profileImageUrl'] ?? '';
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+    }
+  }
+
+  Future<UserCredential?> signInWithEmail(String email, String password) async {
+    try {
+      // Ensure we're signed out first
+      await _clearAuthData();
+      
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (userCredential.user != null) {
+        await _firestore.collection('users').doc(userCredential.user!.uid).update({
+          'lastLogin': FieldValue.serverTimestamp(),
+        });
+      }
+
+      return userCredential;
+    } catch (e) {
+      print('Error signing in with email: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to sign in with email: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return null;
+    }
   }
 
 }

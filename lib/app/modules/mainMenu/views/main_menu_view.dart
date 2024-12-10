@@ -295,14 +295,7 @@ Widget _buildCarouselItem(BuildContext context, String title, String subtitle, S
               ),
               const SizedBox(height: 3),
               ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                      context, 
-                    MaterialPageRoute(
-                      builder: (context) => CheckoutPage(produk: controller.filteredProducts[index]),
-                    ),
-                  );
-                },
+                onPressed: () {},
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xffff101014),
                   shape: RoundedRectangleBorder(

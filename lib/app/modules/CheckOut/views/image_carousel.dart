@@ -4,26 +4,78 @@ import 'package:flutter/material.dart';
 class CustomImageCarousel extends StatefulWidget {
   final List<String> imgList;
 
-  const CustomImageCarousel({super.key, required this.imgList});
+  const CustomImageCarousel({Key? key, required this.imgList}) : super(key: key);
 
   @override
-  _CustomImageCarouselState createState() => _CustomImageCarouselState();
+  State<CustomImageCarousel> createState() => _CustomImageCarouselState();
 }
 
 class _CustomImageCarouselState extends State<CustomImageCarousel> {
+  final PageController _pageController = PageController();
   int _current = 0;
-  late PageController _pageController;
 
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController();
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
+  void _showFullScreenImage(BuildContext context, int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          body: SafeArea(
+            child: Stack(
+              children: [
+                PageView.builder(
+                  controller: PageController(initialPage: index),
+                  itemCount: widget.imgList.length,
+                  itemBuilder: (context, index) {
+                    return InteractiveViewer(
+                      minScale: 0.5,
+                      maxScale: 4.0,
+                      child: Center(
+                        child: Image.network(
+                          widget.imgList[index],
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                color: const Color(0xFFFF8225),
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                Positioned(
+                  top: 16,
+                  left: 16,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -31,7 +83,7 @@ class _CustomImageCarouselState extends State<CustomImageCarousel> {
     return Stack(
       children: [
         SizedBox(
-          height: 200, // Adjust this value as needed
+          height: 200,
           child: PageView.builder(
             controller: _pageController,
             itemCount: widget.imgList.length,
@@ -41,9 +93,24 @@ class _CustomImageCarouselState extends State<CustomImageCarousel> {
               });
             },
             itemBuilder: (context, index) {
-              return Image.network(
-                widget.imgList[index],
-                fit: BoxFit.cover,
+              return GestureDetector(
+                onTap: () => _showFullScreenImage(context, index),
+                child: Image.network(
+                  widget.imgList[index],
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        color: const Color(0xFFFF8225),
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    );
+                  },
+                ),
               );
             },
           ),

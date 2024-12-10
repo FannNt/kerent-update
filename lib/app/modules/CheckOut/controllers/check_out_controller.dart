@@ -11,9 +11,7 @@ class CheckoutController extends GetxController {
   RxBool isExpanded = false.obs;
 
   final List<String> imgList = [
-    'https://via.placeholder.com/400x300/111111/FFFFFF/?text=Laptop+1',
-    'https://via.placeholder.com/400x300/111111/FFFFFF/?text=Laptop+2',
-    'https://via.placeholder.com/400x300/111111/FFFFFF/?text=Laptop+3',
+
   ];
 
 

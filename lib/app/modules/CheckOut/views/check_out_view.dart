@@ -36,6 +36,19 @@ class _CheckoutPageState extends State<CheckoutPage> {
   void initState() {
     super.initState();
     loadSellerInfo();
+    
+    // Initialize imgList with product images
+    imgList.clear(); // Clear any existing images
+    
+    // Add main product image if it exists
+    if (widget.produk.images.isNotEmpty) {
+      imgList.add(widget.produk.images);
+    }
+    
+    // If no images are available, add a placeholder
+    if (imgList.isEmpty) {
+      imgList.add('https://via.placeholder.com/400x300/111111/FFFFFF/?text=No+Image');
+    }
   }
 
   Future<void> loadSellerInfo() async {
@@ -57,45 +70,44 @@ class _CheckoutPageState extends State<CheckoutPage> {
   bool get isProductOwner => 
     widget.produk.sellerId == _authController.currentUser?.uid;
 
-  final List<String> imgList = [
-  ];
+  final List<String> imgList = [];
 
   @override
   Widget build(BuildContext context) {
-    chatSellerButton = ElevatedButton(
-      onPressed: widget.produk.sellerId.isNotEmpty 
-          ? () {
+    chatSellerButton = !isProductOwner && widget.produk.sellerId.isNotEmpty 
+        ? ElevatedButton(
+            onPressed: () {
               controller.onChatPressed(
                 widget.produk.sellerId,
                 widget.produk.seller
               );
-            }
-          : null,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.transparent,
-        foregroundColor: const Color(0xFFFF8225),
-        elevation: 0,
-        side: const BorderSide(
-          color: Color(0xFFFF8225),
-          width: 1,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 8,
-        ),
-      ),
-      child: const Text(
-        'Chat Seller',
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          fontFamily: 'Plus Jakarta Sans',
-        ),
-      ),
-    );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              foregroundColor: const Color(0xFFFF8225),
+              elevation: 0,
+              side: const BorderSide(
+                color: Color(0xFFFF8225),
+                width: 1,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 8,
+              ),
+            ),
+            child: const Text(
+              'Chat Seller',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Plus Jakarta Sans',
+              ),
+            ),
+          )
+        : null;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -280,7 +292,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 ),
                               ),
                             ),
-                            chatSellerButton!,
+                            if (chatSellerButton != null) ...[
+                              const SizedBox(width: 8),
+                              chatSellerButton!,
+                            ],
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -402,19 +417,22 @@ class _CheckoutPageState extends State<CheckoutPage> {
           flex: 2,
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF8225),
+              backgroundColor: widget.produk.isAvailable 
+                  ? const Color(0xFFFF8225)
+                  : Colors.grey,
               minimumSize: const Size(double.infinity, 50),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            onPressed: () {
-              // Existing rent functionality
-              Get.to(() => PaymentView(product: widget.produk));
-            },
-            child: const Text(
-              'Rent Now',
-              style: TextStyle(
+            onPressed: widget.produk.isAvailable
+              ? () {
+                  Get.to(() => PaymentView(product: widget.produk));
+                }
+              : null,
+            child: Text(
+              widget.produk.isAvailable ? 'Rent Now' : 'Not Available',
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -423,6 +441,71 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showFullScreenImage(BuildContext context, int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          body: SafeArea(
+            child: Stack(
+              children: [
+                PageView.builder(
+                  controller: PageController(initialPage: index),
+                  itemCount: imgList.length,
+                  itemBuilder: (context, index) {
+                    return InteractiveViewer(
+                      minScale: 0.5,
+                      maxScale: 4.0,
+                      child: Center(
+                        child: Image.network(
+                          imgList[index],
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                color: const Color(0xFFFF8225),
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                Positioned(
+                  top: 16,
+                  left: 16,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        fullscreenDialog: true,
+      ),
     );
   }
 }

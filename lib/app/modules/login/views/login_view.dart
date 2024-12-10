@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/login_controller.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginView extends GetView<LoginController> {
   final formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
+    // Check if user is already logged in
+    if (FirebaseAuth.instance.currentUser != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Get.offAllNamed('/main-menu');
+      });
+    }
+    
     return Scaffold(
       backgroundColor: Color(0xFF1F1F1F),
       body: SafeArea(

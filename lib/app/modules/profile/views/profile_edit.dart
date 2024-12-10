@@ -98,34 +98,6 @@ class _ProfileEditViewState extends State<ProfileEditView> {
           ),
           Row(
             children: [
-              // Preview Profile Button
-              TextButton.icon(
-                onPressed: () {
-                  // Navigate to public view with current user's data
-                  Get.to(
-                    () => const PublicProfilePage(),
-                    arguments: {
-                      'userId': _authService.userUid,
-                      'isCurrentUser': true,
-                      'isPreview': true  // Add this flag to indicate preview mode
-                    },
-                    transition: Transition.rightToLeft,
-                  );
-                },
-                icon: const Icon(
-                  Icons.remove_red_eye_outlined,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                label: const Text(
-                  'Preview',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 14,
-                  ),
-                ),
-              ),
               const SizedBox(width: 8),
               IconButton(
                 icon: const Icon(Icons.check, color: Colors.white),
@@ -863,11 +835,9 @@ Widget _buildProductCard(String name, String price, String imageUrl) {
           ),
           TextButton(
             onPressed: () {
-              // Implement logout logic here
-              // For example:
-              // _profileEditController.logout();
+              _authController.logout();
               Get.back();
-              Get.offAllNamed('/login'); // Navigate to login page
+              Get.offAllNamed('/home'); // Navigate to login page
             },
             child: const Text(
               'Logout',
