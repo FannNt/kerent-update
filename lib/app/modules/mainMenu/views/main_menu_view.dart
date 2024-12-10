@@ -2,16 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'dart:ui';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:kerent/app/controllers/auth_controller.dart';
 import 'package:kerent/app/data/models/product.dart';
 import 'package:kerent/app/modules/CheckOut/views/check_out_view.dart';
 import 'package:kerent/app/modules/mainMenu/controllers/main_menu_controller.dart';
-
-import 'package:kerent/app/modules/profile/views/profile_view.dart';
-
 import '../../../../navbar.dart';
 import '../../inbox/views/inbox_view.dart';
 import '../../profile/controllers/profile_controller.dart';
@@ -19,7 +15,10 @@ import '../../searchResult/views/search_result_view.dart';
 import '../../searchResult/controllers/search_result_controller.dart';
 
 class MainMenuView extends GetView<MainMenuController> {
-  MainMenuView({super.key});
+  MainMenuView({super.key}) {
+    final _auth = Get.find<AuthController>();
+    _auth.loadUserData(); // Load user data when view is created
+  }
   final ProfileController profileController = Get.put(ProfileController());
 
   @override

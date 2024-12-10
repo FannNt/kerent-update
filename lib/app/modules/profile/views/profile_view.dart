@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kerent/app/data/models/chat.dart';
 import 'package:kerent/app/modules/profile/controllers/profile_controller.dart';
+import 'package:intl/intl.dart';
+import '../../../data/models/product.dart';
+import '../../CheckOut/views/check_out_view.dart';
 
 import '../../../controllers/auth_controller.dart';
 import '../../chat/controllers/chat_controller.dart';
@@ -296,27 +299,28 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         crossAxisSpacing: 16.0,
         mainAxisSpacing: 16.0,
       ),
-      itemCount: controller.rentedItems.length,
+      itemCount: controller.userProducts.length,
       itemBuilder: (context, index) {
-        final product = controller.rentedItems[index];
-        return _buildProductCard(
-          product['name'] ?? '',
-          'Rp ${product['price'] ?? 0}',
-          product['images'] ?? '',
-        );
+        return _buildProductCard(controller.userProducts[index]);
       },
     );
   }
 
-  Widget _buildProductCard(String name, String price, String imageUrl) {
-    return SizedBox(
-      height: 250,
-      child: Card(
-        elevation: 0,
-        color: const Color(0xFF31363F),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+  Widget _buildProductCard(Product product) {
+    final formattedPrice = NumberFormat.currency(
+      locale: 'id',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    ).format(product.price);
+
+    return Card(
+      elevation: 0,
+      color: const Color(0xFF31363F),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: InkWell(
+        onTap: () => Get.to(() => CheckoutPage(produk: product)),
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(
@@ -332,13 +336,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
-                      imageUrl,
+                      product.images,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        return Image.asset(
-                          'assets/placeholder.png',
-                          fit: BoxFit.cover,
-                        );
+                        return const Icon(Icons.error);
                       },
                     ),
                   ),
@@ -346,7 +347,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               ),
               const SizedBox(height: 8),
               Text(
-                name,
+                product.name,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -357,7 +358,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                 ),
               ),
               Text(
-                price,
+                formattedPrice,
                 style: const TextStyle(
                   fontWeight: FontWeight.normal,
                   color: Color(0xFFF8F8F8),
@@ -456,6 +457,89 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         ),
       ],
     );
+  }
+
+  Widget _buildUserProducts() {
+    return Obx(() {
+      if (profileController.userProducts.isEmpty) {
+        return const Center(
+          child: Text(
+            'No products listed yet',
+            style: TextStyle(color: Colors.white70),
+          ),
+        );
+      }
+
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.75,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+        ),
+        itemCount: profileController.userProducts.length,
+        itemBuilder: (context, index) {
+          final product = profileController.userProducts[index];
+          return Card(
+            color: const Color(0xFF31363F),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: InkWell(
+              onTap: () => Get.to(() => CheckoutPage(produk: product)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      child: Image.network(
+                        product.images,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          NumberFormat.currency(
+                            locale: 'id',
+                            symbol: 'Rp ',
+                            decimalDigits: 0,
+                          ).format(product.price),
+                          style: const TextStyle(
+                            color: Color(0xFFFF8225),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    });
   }
 
   @override

@@ -173,8 +173,8 @@ class ChatListPage extends StatelessWidget {
             Obx(() => chatController.isSearching.value
                 ? _buildSearchBar()
                 : const SizedBox.shrink()),
-            const SizedBox(height: 16),
-            _buildOnlineUsers(context),
+            // const SizedBox(height: 16),
+            // _buildOnlineUsers(context),
             const SizedBox(height: 20),
             _buildChatsHeader(),
             _buildSearchResults(context),

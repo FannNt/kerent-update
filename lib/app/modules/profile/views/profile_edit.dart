@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:kerent/app/modules/CheckOut/views/check_out_view.dart';
 import 'package:kerent/app/modules/profile/controllers/profile_controller.dart';
 import 'package:kerent/app/modules/profile/views/profile_view.dart';
 import 'dart:async';
 
 
 import '../../../controllers/auth_controller.dart';
+import '../../../data/models/product.dart';
 import '../../../services/auth_service.dart';
 import 'follower_view.dart';
 import 'following_view.dart';
@@ -41,6 +44,7 @@ class _ProfileEditViewState extends State<ProfileEditView> {
     _countDown.value = 60;
     _isTimerRunning.value = true;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      
       if (_countDown.value == 0) {
         timer.cancel();
         _isTimerRunning.value = false;
@@ -609,17 +613,37 @@ Widget _buildContactField({
   }
 
   Widget _buildTabBarView() {
-    return Expanded(
-      child: TabBarView(
-        children: [
-          _buildBarangDisewakanGrid(),
-        ],
-      ),
+    return TabBarView(
+      children: [
+        GetX<ProfileController>(
+          builder: (controller) {
+            if (controller.isLoading.value) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFFFF8225),
+                ),
+              );
+            }
+            return _buildBarangDisewakanGrid();
+          },
+        ),
+      ],
     );
   }
 
   Widget _buildBarangDisewakanGrid() {
-    return Obx(() => GridView.builder(
+    return GetX<ProfileController>(
+      builder: (controller) {
+        if (controller.userProducts.isEmpty) {
+          return const Center(
+            child: Text(
+              'No products listed yet',
+              style: TextStyle(color: Colors.white70),
+            ),
+          );
+        }
+
+        return GridView.builder(
           padding: const EdgeInsets.all(16.0),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
@@ -627,19 +651,22 @@ Widget _buildContactField({
             crossAxisSpacing: 16.0,
             mainAxisSpacing: 16.0,
           ),
-          itemCount: _profileEditController.rentedItems.length,
+          itemCount: controller.userProducts.length,
           itemBuilder: (context, index) {
-            final item = _profileEditController.rentedItems[index];
-            return _buildProductCard(
-              item['name'],
-              item['price'],
-              item['imageUrl'],
-            );
+            return _buildProductCard(controller.userProducts[index]);
           },
-        ));
+        );
+      },
+    );
   }
 
-Widget _buildProductCard(String name, String price, String imageUrl) {
+  Widget _buildProductCard(Product product) {
+    final formattedPrice = NumberFormat.currency(
+      locale: 'id',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    ).format(product.price);
+
     return Card(
       elevation: 0,
       color: const Color(0xFF31363F),
@@ -648,55 +675,58 @@ Widget _buildProductCard(String name, String price, String imageUrl) {
       ),
       child: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: Colors.black26,
-                    ),
-                    width: double.infinity,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
-                            Icons.image_not_supported,
-                            color: Colors.grey,
-                          );
-                        },
+          InkWell(
+            onTap: () => Get.to(() => CheckoutPage(produk: product)),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.black26,
+                      ),
+                      width: double.infinity,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          product.images,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.image_not_supported,
+                              color: Colors.grey,
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFF8F8F8),
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 14,
+                  const SizedBox(height: 8),
+                  Text(
+                    product.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFF8F8F8),
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 14,
+                    ),
                   ),
-                ),
-                Text(
-                  price,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.normal,
-                    color: Color(0xFFF8F8F8),
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 10,
+                  Text(
+                    formattedPrice,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.normal,
+                      color: Color(0xFFF8F8F8),
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 10,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           // Delete button
@@ -709,10 +739,10 @@ Widget _buildProductCard(String name, String price, String imageUrl) {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: IconButton(
-               icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                 padding: const EdgeInsets.all(8),
                 constraints: const BoxConstraints(),
-                onPressed: () => _showDeleteConfirmationDialog(name),
+                onPressed: () => _showDeleteConfirmationDialog(product),
               ),
             ),
           ),
@@ -721,7 +751,7 @@ Widget _buildProductCard(String name, String price, String imageUrl) {
     );
   }
 
-  void _showDeleteConfirmationDialog(String itemName) {
+  void _showDeleteConfirmationDialog(Product product) {
     Get.dialog(
       AlertDialog(
         backgroundColor: const Color(0xFF31363F),
@@ -733,7 +763,7 @@ Widget _buildProductCard(String name, String price, String imageUrl) {
           ),
         ),
         content: Text(
-          'Apakah kamu yakin ingin menghapus? "$itemName"?',
+          'Apakah kamu yakin ingin menghapus "${product.name}"?',
           style: const TextStyle(
             color: Colors.white,
             fontFamily: 'Plus Jakarta Sans',
@@ -751,17 +781,27 @@ Widget _buildProductCard(String name, String price, String imageUrl) {
             ),
           ),
           TextButton(
-            onPressed: () {
-              // Implement delete logic here
-              _profileEditController.deleteBarangDisewakan(itemName);
-              Get.back();
-              Get.snackbar(
-                'Success',
-                'Item berhasil dihapus',
-                backgroundColor: Colors.green,
-                colorText: Colors.white,
-                snackPosition: SnackPosition.BOTTOM,
-              );
+            onPressed: () async {
+              try {
+                await _profileEditController.deleteProduct(product.id);
+                Get.back();
+                Get.snackbar(
+                  'Success',
+                  'Item berhasil dihapus',
+                  backgroundColor: Colors.green,
+                  colorText: Colors.white,
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+              } catch (e) {
+                Get.back();
+                Get.snackbar(
+                  'Error',
+                  'Gagal menghapus item',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+              }
             },
             child: const Text(
               'Delete',

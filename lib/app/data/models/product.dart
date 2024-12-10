@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -110,6 +109,26 @@ class Product {
       'createdAt': Timestamp.fromDate(createdAt),
       'isAvailable': isAvailable,
     };
+  }
+
+  // Add this method to your Product class
+  factory Product.fromMap(Map<String, dynamic> map) {
+    return Product(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      price: (map['price'] ?? 0).toDouble(),
+      images: map['images'] ?? '',
+      rating: (map['rating'] ?? 0).toDouble(),
+      seller: map['seller'] ?? '',
+      sellerId: map['sellerId'] ?? '',
+      kelas: map['kelas'] ?? '',
+      stock: map['stock'] ?? 0,
+      kondisi: map['kondisi'] ?? '',
+      etalase: map['etalase'] ?? '',
+      deskripsi: map['deskripsi'] ?? '',
+      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      isAvailable: map['isAvailable'] ?? true,
+    );
   }
 }
 

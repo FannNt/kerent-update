@@ -49,42 +49,34 @@ class AuthController extends GetxController {
 
  Future<UserCredential?> signInWithGoogle() async {
     try {
-      // Ensure we're signed out first
-      await _clearAuthData();
-      
-      // Show account picker and get selected account
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) return null;
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // Sign in with Firebase
       final userCredential = await _auth.signInWithCredential(credential);
+      
+      // Update display name immediately after sign in
+      displayName.value = googleUser.displayName ?? '';
+      email.value = googleUser.email;
+      image.value = googleUser.photoUrl ?? '';
 
-      if (userCredential.user != null) {
-        await _firestore.collection('users').doc(userCredential.user!.uid).set({
-          'username': userCredential.user!.displayName,
-          'email': userCredential.user!.email,
-          'photoUrl': userCredential.user!.photoURL,
-          'lastLogin': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-      }
+      // Also update Firestore with the user data
+      await _firestore.collection('users').doc(userCredential.user?.uid).set({
+        'username': googleUser.displayName,
+        'email': googleUser.email,
+        'photoURL': googleUser.photoUrl,
+        'lastLogin': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
+      await loadUserData(); // Reload user data to ensure synchronization
       return userCredential;
     } catch (e) {
       print('Error signing in with Google: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to sign in with Google: $e',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
       return null;
     }
   }
@@ -115,28 +107,15 @@ class AuthController extends GetxController {
     try {
       final user = _auth.currentUser;
       if (user != null) {
-        final userData = await _firestore
-            .collection('users')
-            .doc(user.uid)
-            .get();
-
+        final userData = await _firestore.collection('users').doc(user.uid).get();
         if (userData.exists) {
-          // Update both Firebase Auth and local state
-          final username = userData.data()?['username'] ?? '';
-          displayName.value = username;
-          
-          // Update Firebase Auth display name if it's different
-          if (user.displayName != username) {
-            await user.updateDisplayName(username);
-          }
-          
-          // Update other user data
-          phoneNumber.value = userData.data()?['phoneNumber'] ?? '';
-          email.value = userData.data()?['email'] ?? '';
-          image.value = userData.data()?['profileImageUrl'] ?? '';
-          
-          // Force UI update
-          update();
+          displayName.value = userData.data()?['username'] ?? user.displayName ?? '';
+          email.value = userData.data()?['email'] ?? user.email ?? '';
+          image.value = userData.data()?['photoURL'] ?? user.photoURL ?? '';
+        } else {
+          displayName.value = user.displayName ?? '';
+          email.value = user.email ?? '';
+          image.value = user.photoURL ?? '';
         }
       }
     } catch (e) {

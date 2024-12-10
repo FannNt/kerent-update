@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../data/models/product.dart';
 import '../../../services/auth_service.dart';
 import '../../../controllers/auth_controller.dart';
 
@@ -22,27 +23,26 @@ class ProfileController extends GetxController {
   String? targetUserId;
   final RxBool isLoading = true.obs;
   final RxString error = ''.obs;
+  final RxList<Product> userProducts = <Product>[].obs;
 
   @override
   void onInit() {
     super.onInit();
-    initializeData();
+    loadUserData();
+    loadUserProducts();
   }
 
   Future<void> initializeData() async {
-    isLoading.value = true;
     try {
+      isLoading.value = true;
       await Future.wait([
         loadUserData(),
         loadFollowers(),
         loadFollowing(),
-        loadRentedItems(),
+        loadUserProducts(),
       ]);
-      if (targetUserId != null && targetUserId != _authService.userUid) {
-        await checkFollowStatus();
-      }
     } catch (e) {
-      print('Error initializing data: $e');
+      error.value = e.toString();
     } finally {
       isLoading.value = false;
     }
@@ -265,6 +265,50 @@ class ProfileController extends GetxController {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+    }
+  }
+
+  Future<void> loadUserProducts() async {
+    try {
+      String? uid = targetUserId ?? _authService.userUid;
+      if (uid != null) {
+        final QuerySnapshot productsSnapshot = await _firestore
+            .collection('products')
+            .where('sellerId', isEqualTo: uid)
+            .get();
+            
+        final products = productsSnapshot.docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return Product.fromFirestore(doc);
+        }).toList();
+        
+        userProducts.assignAll(products);
+        rentedItems.assignAll(products);
+      }
+    } catch (e) {
+      print('Error loading user products: $e');
+    }
+  }
+
+  Future<void> deleteProduct(String productId) async {
+    try {
+      String? uid = _authService.userUid;
+      if (uid != null) {
+        // Delete the product from Firestore
+        await _firestore
+            .collection('products')
+            .doc(productId)
+            .delete();
+        
+        // Remove the product from local list
+        userProducts.removeWhere((product) => product.id == productId);
+        
+        // Reload products to ensure sync
+        await loadUserProducts();
+      }
+    } catch (e) {
+      print('Error deleting product: $e');
+      throw e;
     }
   }
 }
